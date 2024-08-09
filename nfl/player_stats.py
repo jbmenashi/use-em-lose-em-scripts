@@ -12,7 +12,7 @@ client = MongoClient(os.environ["MONGODB_CONN"])
 # rushingTwoPointConversion
 # receivingTwoPointConversion
 
-current_week = 18
+current_week = 1
 current_season = 2023
 
 db = client.ff_db
@@ -34,6 +34,7 @@ game_log_inserts = []
 
 def get_player_game_logs():
     updated_players = []
+    locked_teams = []
 
     url = "https://tank01-nfl-live-in-game-real-time-statistics-nfl.p.rapidapi.com/getNFLGamesForWeek"
 
@@ -49,6 +50,9 @@ def get_player_game_logs():
     for game in res.json()["body"]:
         if game["gameStatus"] not in ["Scheduled"]:
             game_id = game["gameID"]
+            if int(game["teamIDHome"]) not in locked_teams:
+                locked_teams.append(int(game["teamIDHome"]))
+                locked_teams.append(int(game["teamIDAway"]))
             print(game_id)
             game_url = "https://tank01-nfl-live-in-game-real-time-statistics-nfl.p.rapidapi.com/getNFLBoxScore"
 
@@ -88,7 +92,7 @@ def get_player_game_logs():
                             update = 1   
                         if found_game_log["tds"] != int(get_nested(player, ["Rushing", "rushTD"])) + int(get_nested(player, ["Receiving", "recTD"])) + int(get_nested(player, ["Kicking", "kickReturnTD"])) + int(get_nested(player, ["Punting", "puntReturnTD"])):
                             update = 1    
-                        if found_game_log["two_pt_conv"] != int(get_nested(player, ["Passing"]["passingTwoPointConversion"])) + int(get_nested(player, ["Rushing"]["rushingTwoPointConversion"])) + int(get_nested(player, ["Receiving"]["receivingTwoPointConversion"])):
+                        if found_game_log["two_pt_conv"] != int(get_nested(player, ["Passing", "passingTwoPointConversion"])) + int(get_nested(player, ["Rushing", "rushingTwoPointConversion"])) + int(get_nested(player, ["Receiving", "receivingTwoPointConversion"])):
                             update = 1
                         if found_game_log["yahoo_pts"] != round(float(player["fantasyPoints"]), 2):
                             update = 1  
@@ -131,7 +135,7 @@ def get_player_game_logs():
                             game_log["rec_yds"] = int(get_nested(player, ["Receiving", "recYds"]))
                             game_log["fumbles"] = int(get_nested(player, ["Defense", "fumblesLost"]))
                             game_log["tds"] = int(get_nested(player, ["Rushing", "rushTD"])) + int(get_nested(player, ["Receiving", "recTD"])) + int(get_nested(player, ["Kicking", "kickReturnTD"])) + int(get_nested(player, ["Punting", "puntReturnTD"]))
-                            game_log["two_pt_conv"] = int(get_nested(player, ["Passing"]["passingTwoPointConversion"])) + int(get_nested(player, ["Rushing"]["rushingTwoPointConversion"])) + int(get_nested(player, ["Receiving"]["receivingTwoPointConversion"]))
+                            game_log["two_pt_conv"] = int(get_nested(player, ["Passing", "passingTwoPointConversion"])) + int(get_nested(player, ["Rushing", "rushingTwoPointConversion"])) + int(get_nested(player, ["Receiving", "receivingTwoPointConversion"]))
                             game_log["def_pts_allowed"] = 0
                             game_log["def_sacks"] = 0
                             game_log["def_fumble_rec"] = 0
@@ -223,7 +227,11 @@ def get_player_game_logs():
     if len(game_log_inserts) > 0:
         nfl_game_logs.insert_many(game_log_inserts)
 
-    return(updated_players)
+    data = {
+        "players": updated_players,
+        "teams": locked_teams
+    }
+    return data
 
 def season_stats(player_ids):
     new_season_stats = []
@@ -322,22 +330,36 @@ def season_stats(player_ids):
     if len(new_season_stats) > 0:
         player_season_stats.insert_many(new_season_stats)
 
-def update_lineups(playerIds):
+def update_lineups(updated_players, locked_teams):
+    found_team_lineups = lineups.find({"week": current_week, "season": current_season})
+
+    for lineup in found_team_lineups:
+        for idx, selection in enumerate(lineup["selections"]):
+            if "team_id" in selection.keys() and selection["team_id"] in locked_teams:
+                lineups.update_one(
+                    {"_id": ObjectId(lineup["_id"])},
+                    {
+                        "$set": { 
+                            f"selections.{idx}.locked": True
+                        }
+                    }
+                )   
+
     # iterate through list of player IDs
-    for player in playerIds:
+    for player in updated_players:
         print(f"checking lineups for player {player}")
         game_log = nfl_game_logs.find_one({"player_id": player, "week": current_week, "season": current_season})
     # find lineups with that player Id and matches current week
-        found_lineups = lineups.find({"selections.player_id": player, "week": current_week, "season": current_season}) # does selections.player_id work?
+        found_player_lineups = lineups.find({"selections.player_id": player, "week": current_week, "season": current_season}) 
 
-        for lineup in found_lineups:
+        for lineup in found_player_lineups:
             print(f"found selection for {player} in lineup {lineup["_id"]}")
             league = leagues.find_one({"_id": ObjectId(lineup["league_id"])})
             scoring = league["scoring"]["statistics"]
 
             game_log_fantasy_stats = {}
             for k, v in scoring.items():
-                if k == "def_pts_allowed":
+                if k == "def_pts_allowed" and game_log["player_id"] == game_log["team_id"]:
                     if game_log[k] == 0:
                         game_log_fantasy_stats[k] = 10
                     elif game_log[k] > 0 and game_log[k] < 7:
@@ -353,18 +375,18 @@ def update_lineups(playerIds):
                     else:
                         game_log_fantasy_stats[k] = -4
                 else:
-                    game_log_fantasy_stats[k] = game_log[k] * v
+                    game_log_fantasy_stats[k] = round(game_log[k] * v, 2)
                 # defensive points allowed
 
             fantasy_stats_dict = { k:v for (k,v) in game_log_fantasy_stats.items()}
-            total_points = sum(value for value in game_log_fantasy_stats.values())
+            total_points = sum(round(value, 2) for value in game_log_fantasy_stats.values())
 
             selection_index = next((i for i, item in enumerate(lineup["selections"]) if item["player_id"] == player))
 
             lineup_score = 0
             for selection in lineup["selections"]:
-                if selection["index"] != selection_index:
-                    lineup_score += selection["score"]
+                if selection["index"] != selection_index and "total_points" in selection.keys():
+                    lineup_score += selection["total_points"]
 
             lineup_score += total_points
 
@@ -374,12 +396,10 @@ def update_lineups(playerIds):
                 lineups.update_one(
                     {"_id": ObjectId(lineup["_id"])},
                     {
-                        "$push": { 
-                            f"selections.{selection_index}.fantasy_stats": fantasy_stats_dict,
-                            f"selections.{selection_index}.total_points": total_points
-                        },
                         "$set": { 
                             f"selections.{selection_index}.locked": True,
+                            f"selections.{selection_index}.fantasy_stats": fantasy_stats_dict,
+                            f"selections.{selection_index}.total_points": total_points,
                             f"score": lineup_score
                         }
                     }
@@ -420,7 +440,7 @@ def update_lineups(playerIds):
     
     return
 
-players = get_player_game_logs()
-season_stats(players)
-# update_lineups(players)
+data = get_player_game_logs()
+season_stats(data["players"])
+update_lineups(data["players"], data["teams"])
 
