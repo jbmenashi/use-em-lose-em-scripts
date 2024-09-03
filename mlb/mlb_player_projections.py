@@ -7,7 +7,7 @@ import os
 
 load_dotenv(find_dotenv())
 
-client = MongoClient(os.environ["MONGODB_CONN"])
+client = MongoClient(os.environ["MONGODB_URI"])
 db = client.ff_db
 player_projections = db["PlayerProjections"]
 

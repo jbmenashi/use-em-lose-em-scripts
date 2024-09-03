@@ -8,7 +8,7 @@ from collections import defaultdict
 
 load_dotenv(find_dotenv())
 
-client = MongoClient(os.environ["MONGODB_CONN"])
+client = MongoClient(os.environ["MONGODB_URI"])
 
 game_date = "2023-APR-02"
 current_week = 1

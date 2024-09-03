@@ -6,7 +6,7 @@ import os
 
 load_dotenv(find_dotenv())
 
-client = MongoClient(os.environ["MONGODB_CONN"])
+client = MongoClient(os.environ["MONGODB_URI"])
 
 # passingTwoPointConversion
 # rushingTwoPointConversion
