@@ -1,8 +1,9 @@
 name: test github actions
 # Schedule to run the action every 5 minutes
-on:
-  schedule:
-    - cron: "*/5 * * * *" # Run every 5 minutes
+# on:
+#   schedule:
+#     - cron: "*/5 * * * *" # Run every 5 minutes
+on: [push]
 
 jobs:
   write-time-job:
