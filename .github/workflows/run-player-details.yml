@@ -1,16 +1,13 @@
-name: test github actions
+name: run player details script
 # Schedule to run the action every 5 minutes
-# on:
-#   schedule:
-#     - cron: "*/5 * * * *" # Run every 5 minutes
-on: [push]
+on:
+  schedule:
+    - cron: "11 */4 * * *" # Run every 15 minutes
+# on: [push]
 
 jobs:
   write-time-job:
     runs-on: ubuntu-latest # Use the latest Ubuntu environment
-
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout code
@@ -27,12 +24,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run Python script
-        run: python test/write_time.py # Run the Python script that writes the current time
-
-      - name: Commit changes
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add test/current_time.txt
-          git commit -m "Update current_time.txt with latest time"
-          git push
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          RAPID_API_KEY: ${{ secrets.RAPID_API_KEY }}
+        run: python nfl/player_details.py # Run the Python script that writes the current time
