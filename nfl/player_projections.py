@@ -119,7 +119,7 @@ def get_player_projections():
                 projection["season"] = projection_season
                 projection["week"] = projection_week
                 projection["opponent"] = games[f"{player['teamID']}"]["opponent"]
-                projection["opponent_team_id"] = int(games[f"{player["teamID"]}"]["opponent_id"])
+                projection["opponent_team_id"] = int(games[f"{player['teamID']}"]["opponent_id"])
                 projection["location"] = games[f"{player['teamID']}"]["location"]
                 projection["game_time"] = games[f"{player['teamID']}"]["game_time"]
                 projection["stats"] = {}
