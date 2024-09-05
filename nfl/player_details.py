@@ -51,7 +51,7 @@ def get_player_details():
                         "position": player["pos"],
                     }}
                 )       
-                print(f"updated {player["longName"]}")
+                print(f"updated {player['longName']}")
         else:
             if player["pos"] in ["QB", "RB", "WR", "TE", "FB"]:
                 doc = {}
@@ -68,7 +68,7 @@ def get_player_details():
                 else:
                     doc["logo"] = ""
                 docs.append(doc)
-                print(f"inserted {player["longName"]}")
+                print(f"inserted {player['longName']}")
 
     if len(docs) > 0:
         playerDetails.insert_many(docs) 

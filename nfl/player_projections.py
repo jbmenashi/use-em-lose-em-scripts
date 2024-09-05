@@ -26,17 +26,17 @@ def get_player_projections():
     schedule_res = requests.get(schedule_url, headers=schedule_headers, params=schedule_querystring)
     games = {}
     for game in schedule_res.json()["body"]:
-        games[f"{game["teamIDHome"]}"] = {}
-        games[f"{game["teamIDHome"]}"]["location"] = "Home"
-        games[f"{game["teamIDHome"]}"]["opponent"] = game["away"]
-        games[f"{game["teamIDHome"]}"]["opponent_id"] = game["teamIDAway"]
-        games[f"{game["teamIDHome"]}"]["game_time"] = game["gameTime"]
+        games[f"{game['teamIDHome']}"] = {}
+        games[f"{game['teamIDHome']}"]["location"] = "Home"
+        games[f"{game['teamIDHome']}"]["opponent"] = game["away"]
+        games[f"{game['teamIDHome']}"]["opponent_id"] = game['teamIDAway']
+        games[f"{game['teamIDHome']}"]["game_time"] = game["gameTime"]
 
-        games[f"{game["teamIDAway"]}"] = {}
-        games[f"{game["teamIDAway"]}"]["location"] = "Away"
-        games[f"{game["teamIDAway"]}"]["opponent"] = game["home"]
-        games[f"{game["teamIDAway"]}"]["opponent_id"] = game["teamIDHome"]
-        games[f"{game["teamIDAway"]}"]["game_time"] = game["gameTime"]
+        games[f"{game['teamIDAway']}"] = {}
+        games[f"{game['teamIDAway']}"]["location"] = "Away"
+        games[f"{game['teamIDAway']}"]["opponent"] = game["home"]
+        games[f"{game['teamIDAway']}"]["opponent_id"] = game['teamIDHome']
+        games[f"{game['teamIDAway']}"]["game_time"] = game["gameTime"]
 
     projection_inserts = []
 
@@ -104,9 +104,9 @@ def get_player_projections():
                         "stats.score": round(float(player["fantasyPoints"]), 2)
                     }}
                 )       
-                print(f"updated projection for {player["longName"]} for week {projection_week}")
+                print(f"updated projection for {player['longName']} for week {projection_week}")
             else:
-                print(f"no projection change for {player["longName"]} for week {projection_week}")
+                print(f"no projection change for {player['longName']} for week {projection_week}")
                     
         else:
             if player["pos"] in ["QB", "RB", "WR", "TE", "FB"]:
@@ -118,10 +118,10 @@ def get_player_projections():
                 projection["sport"] = "NFL"
                 projection["season"] = projection_season
                 projection["week"] = projection_week
-                projection["opponent"] = games[f"{player["teamID"]}"]["opponent"]
+                projection["opponent"] = games[f"{player['teamID']}"]["opponent"]
                 projection["opponent_team_id"] = int(games[f"{player["teamID"]}"]["opponent_id"])
-                projection["location"] = games[f"{player["teamID"]}"]["location"]
-                projection["game_time"] = games[f"{player["teamID"]}"]["game_time"]
+                projection["location"] = games[f"{player['teamID']}"]["location"]
+                projection["game_time"] = games[f"{player['teamID']}"]["game_time"]
                 projection["stats"] = {}
                 projection["stats"]["pass_yds"] = round(float(player["Passing"]["passYds"]), 2)
                 projection["stats"]["pass_tds"] = round(float(player["Passing"]["passTD"]), 2)
@@ -142,7 +142,7 @@ def get_player_projections():
                 projection["stats"]["score"] = round(float(player["fantasyPoints"]), 2)
                 projection_inserts.append(projection)
                 
-                print(f"inserted new projection for {player["longName"]} for week {projection_week}")
+                print(f"inserted new projection for {player['longName']} for week {projection_week}")
 
     for d in res.json()["body"]["teamDefenseProjections"]:
         dst = res.json()["body"]["teamDefenseProjections"][d]
@@ -206,9 +206,9 @@ def get_player_projections():
                         "stats.score": round(float(dst["fantasyPointsDefault"]), 2)
                     }}
                 )       
-                print(f"updated projection for {dst["teamAbv"]} Defense for week {projection_week}")
+                print(f"updated projection for {dst['teamAbv']} Defense for week {projection_week}")
             else:
-                print(f"no projection change for {dst["teamAbv"]} Defense for week {projection_week}")
+                print(f"no projection change for {dst['teamAbv']} Defense for week {projection_week}")
                     
         else:
             projection = {}
@@ -219,10 +219,10 @@ def get_player_projections():
             projection["sport"] = "NFL"
             projection["season"] = projection_season
             projection["week"] = projection_week
-            projection["opponent"] = games[f"{dst["teamID"]}"]["opponent"]
-            projection["opponent_team_id"] = int(games[f"{dst["teamID"]}"]["opponent_id"])
-            projection["location"] = games[f"{dst["teamID"]}"]["location"]
-            projection["game_time"] = games[f"{dst["teamID"]}"]["game_time"]
+            projection["opponent"] = games[f"{dst['teamID']}"]["opponent"]
+            projection["opponent_team_id"] = int(games[f"{dst['teamID']}"]["opponent_id"])
+            projection["location"] = games[f"{dst['teamID']}"]["location"]
+            projection["game_time"] = games[f"{dst['teamID']}"]["game_time"]
             projection["stats"] = {}
             projection["stats"]["pass_yds"] = 0
             projection["stats"]["pass_tds"] = 0
@@ -243,7 +243,7 @@ def get_player_projections():
             projection["stats"]["score"] = round(float(dst["fantasyPointsDefault"]), 2)
             projection_inserts.append(projection)
             
-            print(f"inserted new projection for {dst["teamAbv"]} Defense for week {projection_week}")
+            print(f"inserted new projection for {dst['teamAbv']} Defense for week {projection_week}")
 
     if len(projection_inserts) > 0:
         player_projections.insert_many(projection_inserts)
