@@ -113,7 +113,7 @@ def get_player_game_logs():
                                     "yahoo_pts": round(float(player["fantasyPoints"]), 2)
                                 }}
                             )       
-                            print(f"updated {player["longName"]}")
+                            print(f"updated {player['longName']}")
                             updated_players.append(player["playerID"])
                         else:
                             print(f"no change for {player['longName']}")
@@ -147,7 +147,7 @@ def get_player_game_logs():
                             
                             game_log_inserts.append(game_log)
                             
-                            print(f"inserted new game log for {player["longName"]}")
+                            print(f"inserted new game log for {player['longName']}")
                             updated_players.append(int(player["playerID"]))
 
             for d in box["DST"]:
@@ -188,10 +188,10 @@ def get_player_game_logs():
                                 "def_tds_scored": int(dst["defTD"]),
                             }}
                         )       
-                        print(f"updated {dst["teamAbv"]}")
+                        print(f"updated {dst['teamAbv']}")
                         updated_players.append(int(dst["teamId"]))
                     else:
-                        print(f"no change for {dst["teamAbv"]} Defense")
+                        print(f"no change for {dst['teamAbv']} Defense")
                             
                 else:
                     game_log = {}
@@ -221,8 +221,8 @@ def get_player_game_logs():
                     
                     game_log_inserts.append(game_log)
                     
-                    print(f"inserted new game log for {dst["teamAbv"]}")
-                    updated_players.append(int(dst["teamID"]))
+                    print(f"inserted new game log for {dst['teamAbv']}")
+                    updated_players.append(int(dst['teamID']))
 
     if len(game_log_inserts) > 0:
         nfl_game_logs.insert_many(game_log_inserts)
@@ -355,7 +355,7 @@ def update_lineups(updated_players, locked_teams):
         found_player_lineups = lineups.find({"selections.player_id": player, "week": current_week, "season": current_season}) 
 
         for lineup in found_player_lineups:
-            print(f"found selection for {player} in lineup {lineup["_id"]}")
+            print(f"found selection for {player} in lineup {lineup['_id']}")
             league = leagues.find_one({"_id": ObjectId(lineup["league_id"])})
             scoring = league["scoring"]["statistics"]
 
