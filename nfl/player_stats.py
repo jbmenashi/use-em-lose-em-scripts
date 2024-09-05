@@ -116,7 +116,7 @@ def get_player_game_logs():
                             print(f"updated {player["longName"]}")
                             updated_players.append(player["playerID"])
                         else:
-                            print(f"no change for {player["longName"]}")
+                            print(f"no change for {player['longName']}")
                                 
                     else:
                         if "Passing" in player.keys() or "Rushing" in player.keys() or "Receiving" in player.keys():

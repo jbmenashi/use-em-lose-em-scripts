@@ -6,7 +6,7 @@ on:
 # on: [push]
 
 jobs:
-  write-time-job:
+  player-stats-job:
     runs-on: ubuntu-latest # Use the latest Ubuntu environment
 
     steps:
