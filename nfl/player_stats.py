@@ -109,7 +109,7 @@ def get_player_game_logs():
                                     "rec_yds": int(get_nested(player, ["Receiving", "recYds"])),
                                     "fumbles": int(get_nested(player, ["Defense", "fumblesLost"])),
                                     "tds": int(get_nested(player, ["Rushing", "rushTD"])) + int(get_nested(player, ["Receiving", "recTD"])) + int(get_nested(player, ["Kicking", "kickReturnTD"])) + int(get_nested(player, ["Punting", "puntReturnTD"])),
-                                    "two_pt_conv": int(get_nested(player, ["Passing"]["passingTwoPointConversion"])) + int(get_nested(player, ["Rushing"]["rushingTwoPointConversion"])) + int(get_nested(player, ["Receiving"]["receivingTwoPointConversion"])),
+                                    "two_pt_conv": int(get_nested(player, ["Passing", "passingTwoPointConversion"])) + int(get_nested(player, ["Rushing", "rushingTwoPointConversion"])) + int(get_nested(player, ["Receiving", "receivingTwoPointConversion"])),
                                     "yahoo_pts": round(float(player["fantasyPoints"]), 2)
                                 }}
                             )       
@@ -265,8 +265,10 @@ def season_stats(player_ids):
                 }
             }
         ])
-
-        result_obj = list(result)[0]
+        if len(list(result)) > 0:
+            result_obj = list(result)[0]
+        else:
+            continue
 
         if season_stat_exists := player_season_stats.find_one({
             "player_id": updated_player_id,
