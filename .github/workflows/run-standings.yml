@@ -1,8 +1,8 @@
-name: run player details
+name: run standings
 # Schedule to run the action every 5 minutes
 on:
   schedule:
-    - cron: "11 */4 * * *" # Run every 4 hours at :11
+    - cron: "50 10 * * 2" # Runs at 5:50 ET every tuesday morning
 # on: [push]
 
 jobs:
@@ -26,5 +26,4 @@ jobs:
       - name: Run Python script
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          RAPID_API_KEY: ${{ secrets.RAPID_API_KEY }}
-        run: python nfl/player_details.py # Run the Python script that writes the current time
+        run: python nfl/standings.py # Run the Python script that writes the current time
