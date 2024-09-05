@@ -1,3 +1,4 @@
+name: test github actions
 # Schedule to run the action every 5 minutes
 on:
   schedule:
