@@ -48,19 +48,20 @@ def get_player_game_logs():
     res = requests.get(url, headers=headers, params=querystring)
 
     for game in res.json()["body"]:
-        if game["gameStatus"] not in ["Scheduled"]:
-            game_id = game["gameID"]
+        game_id = game["gameID"]
+
+        game_url = "https://tank01-nfl-live-in-game-real-time-statistics-nfl.p.rapidapi.com/getNFLBoxScore"
+
+        game_querystring = {"gameID":f"{game_id}","fantasyPoints":"true","twoPointConversions":"2","passYards":".04","passAttempts":"0","passTD":"4","passCompletions":"0","passInterceptions":"-1","pointsPerReception":".5","carries":"0","rushYards":".1","rushTD":"6","fumbles":"-2","receivingYards":".1","receivingTD":"6","targets":"0","defTD":"6"}
+
+        game_res = requests.get(game_url, headers=headers, params=game_querystring)
+
+        box = game_res.json()["body"]
+        if "gameStatus" in box.keys():
             if int(game["teamIDHome"]) not in locked_teams:
                 locked_teams.append(int(game["teamIDHome"]))
                 locked_teams.append(int(game["teamIDAway"]))
             print(game_id)
-            game_url = "https://tank01-nfl-live-in-game-real-time-statistics-nfl.p.rapidapi.com/getNFLBoxScore"
-
-            game_querystring = {"gameID":f"{game_id}","fantasyPoints":"true","twoPointConversions":"2","passYards":".04","passAttempts":"0","passTD":"4","passCompletions":"0","passInterceptions":"-1","pointsPerReception":".5","carries":"0","rushYards":".1","rushTD":"6","fumbles":"-2","receivingYards":".1","receivingTD":"6","targets":"0","defTD":"6"}
-
-            game_res = requests.get(game_url, headers=headers, params=game_querystring)
-
-            box = game_res.json()["body"]
             for p in box["playerStats"]:
                 player = box["playerStats"][p]
                 if "Rushing" in player.keys() or "Passing" in player.keys() or "Receiving" in player.keys():
@@ -189,7 +190,7 @@ def get_player_game_logs():
                             }}
                         )       
                         print(f"updated {dst['teamAbv']}")
-                        updated_players.append(int(dst["teamId"]))
+                        updated_players.append(int(dst["teamID"]))
                     else:
                         print(f"no change for {dst['teamAbv']} Defense")
                             
@@ -236,10 +237,11 @@ def get_player_game_logs():
 def season_stats(player_ids):
     new_season_stats = []
     for updated_player_id in player_ids:
-        result = db['NFLGameLogs'].aggregate([
+        result = list(db['NFLGameLogs'].aggregate([
             {
                 '$match': {
-                    'player_id': updated_player_id
+                    'player_id': updated_player_id,
+                    'season': current_season
                 }
             }, {
                 '$group': {
@@ -264,11 +266,9 @@ def season_stats(player_ids):
                     'total_yahoo_pts': { '$sum': '$yahoo_pts' }
                 }
             }
-        ])
-        if len(list(result)) > 0:
-            result_obj = list(result)[0]
-        else:
-            continue
+        ]))
+
+        result_obj = list(result)[0]
 
         if season_stat_exists := player_season_stats.find_one({
             "player_id": updated_player_id,
@@ -333,6 +333,7 @@ def season_stats(player_ids):
         player_season_stats.insert_many(new_season_stats)
 
 def update_lineups(updated_players, locked_teams):
+    print(locked_teams)
     found_team_lineups = lineups.find({"week": current_week, "season": current_season})
 
     for lineup in found_team_lineups:
