@@ -1,12 +1,12 @@
-name: run player stats
+name: run player season stats
 # Schedule to run the action every 5 minutes
 on:
   schedule:
-    - cron: "*/10 * * * *" # Run every 10 minutes
+    - cron: "22 */4 * * *" # Run every 4 hours at :44
 # on: [push]
 
 jobs:
-  player-stats-job:
+  player-season-stats-job:
     runs-on: ubuntu-latest # Use the latest Ubuntu environment
 
     steps:
@@ -27,4 +27,4 @@ jobs:
         env:
           MONGODB_URI: ${{ secrets.MONGODB_URI }}
           RAPID_API_KEY: ${{ secrets.RAPID_API_KEY }}
-        run: python nfl/player_stats.py # Run the Python script that writes the current time
+        run: python nfl/player_season_stats.py # Run the Python script that writes the current time
