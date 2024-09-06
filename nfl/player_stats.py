@@ -268,7 +268,10 @@ def season_stats(player_ids):
             }
         ]))
 
-        result_obj = list(result)[0]
+        if len(result) > 0:
+            result_obj = result[0]
+        else:
+            continue
 
         if season_stat_exists := player_season_stats.find_one({
             "player_id": updated_player_id,
