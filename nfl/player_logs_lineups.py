@@ -248,96 +248,98 @@ def update_lineups(updated_players, locked_teams):
     # iterate through list of player IDs
     for player in updated_players:
         print(f"checking lineups for player {player}")
-        game_log = nfl_game_logs.find_one({"player_id": player, "week": current_week, "season": current_season})
-    # find lineups with that player Id and matches current week
-        found_player_lineups = lineups.find({"selections.player_id": player, "week": current_week, "season": current_season}) 
+        try:
+            game_log = nfl_game_logs.find_one({"player_id": player, "week": current_week, "season": current_season})
+        # find lineups with that player Id and matches current week
+            found_player_lineups = lineups.find({"selections.player_id": player, "week": current_week, "season": current_season}) 
 
-        for lineup in found_player_lineups:
-            print(f"found selection for {player} in lineup {lineup['_id']}")
-            league = leagues.find_one({"_id": ObjectId(lineup["league_id"])})
-            scoring = league["scoring"]["statistics"]
+            for lineup in found_player_lineups:
+                print(f"found selection for {player} in lineup {lineup['_id']}")
+                league = leagues.find_one({"_id": ObjectId(lineup["league_id"])})
+                scoring = league["scoring"]["statistics"]
 
-            game_log_fantasy_stats = {}
-            for k, v in scoring.items():
-                if k == "def_pts_allowed" and game_log["player_id"] == game_log["team_id"]:
-                    if game_log[k] == 0:
-                        game_log_fantasy_stats[k] = 10
-                    elif game_log[k] > 0 and game_log[k] < 7:
-                        game_log_fantasy_stats[k] = 7
-                    elif game_log[k] >= 7 and game_log[k] < 14:
-                        game_log_fantasy_stats[k] = 4
-                    elif game_log[k] >= 14 and game_log[k] < 21:
-                        game_log_fantasy_stats[k] = 1
-                    elif game_log[k] >= 21 and game_log[k] < 28:
-                        game_log_fantasy_stats[k] = 0
-                    elif game_log[k] >= 28 and game_log[k] < 35:
-                        game_log_fantasy_stats[k] = -1
+                game_log_fantasy_stats = {}
+                for k, v in scoring.items():
+                    if k == "def_pts_allowed" and game_log["player_id"] == game_log["team_id"]:
+                        if game_log[k] == 0:
+                            game_log_fantasy_stats[k] = 10
+                        elif game_log[k] > 0 and game_log[k] < 7:
+                            game_log_fantasy_stats[k] = 7
+                        elif game_log[k] >= 7 and game_log[k] < 14:
+                            game_log_fantasy_stats[k] = 4
+                        elif game_log[k] >= 14 and game_log[k] < 21:
+                            game_log_fantasy_stats[k] = 1
+                        elif game_log[k] >= 21 and game_log[k] < 28:
+                            game_log_fantasy_stats[k] = 0
+                        elif game_log[k] >= 28 and game_log[k] < 35:
+                            game_log_fantasy_stats[k] = -1
+                        else:
+                            game_log_fantasy_stats[k] = -4
                     else:
-                        game_log_fantasy_stats[k] = -4
+                        game_log_fantasy_stats[k] = round(game_log[k] * v, 2)
+                    # defensive points allowed
+
+                fantasy_stats_dict = { k:v for (k,v) in game_log_fantasy_stats.items()}
+                total_points = sum(round(value, 2) for value in game_log_fantasy_stats.values())
+
+                selection_index = next((i for i, item in enumerate(lineup["selections"]) if item["player_id"] == player))
+
+                lineup_score = 0
+                for selection in lineup["selections"]:
+                    if selection["index"] != selection_index and "total_points" in selection.keys():
+                        lineup_score += selection["total_points"]
+
+                lineup_score += total_points
+
+                if "fantasy_stats" not in lineup["selections"][selection_index].keys():
+                    print("first game log for player")
+
+                    lineups.update_one(
+                        {"_id": ObjectId(lineup["_id"])},
+                        {
+                            "$set": { 
+                                f"selections.{selection_index}.locked": True,
+                                f"selections.{selection_index}.fantasy_stats": fantasy_stats_dict,
+                                f"selections.{selection_index}.total_points": total_points,
+                                f"score": lineup_score
+                            }
+                        }
+                    )   
                 else:
-                    game_log_fantasy_stats[k] = round(game_log[k] * v, 2)
-                # defensive points allowed
-
-            fantasy_stats_dict = { k:v for (k,v) in game_log_fantasy_stats.items()}
-            total_points = sum(round(value, 2) for value in game_log_fantasy_stats.values())
-
-            selection_index = next((i for i, item in enumerate(lineup["selections"]) if item["player_id"] == player))
-
-            lineup_score = 0
-            for selection in lineup["selections"]:
-                if selection["index"] != selection_index and "total_points" in selection.keys():
-                    lineup_score += selection["total_points"]
-
-            lineup_score += total_points
-
-            if "fantasy_stats" not in lineup["selections"][selection_index].keys():
-                print("first game log for player")
-
-                lineups.update_one(
-                    {"_id": ObjectId(lineup["_id"])},
-                    {
-                        "$set": { 
-                            f"selections.{selection_index}.locked": True,
-                            f"selections.{selection_index}.fantasy_stats": fantasy_stats_dict,
-                            f"selections.{selection_index}.total_points": total_points,
-                            f"score": lineup_score
+                    lineups.update_one(
+                        {"_id": ObjectId(lineup["_id"])},
+                        {
+                            "$set": { 
+                                f"selections.{selection_index}.fantasy_stats": fantasy_stats_dict,
+                                f"selections.{selection_index}.total_points": total_points,
+                                f"score": lineup_score
+                            }
                         }
-                    }
-                )   
-            else:
-                lineups.update_one(
-                    {"_id": ObjectId(lineup["_id"])},
-                    {
-                        "$set": { 
-                            f"selections.{selection_index}.fantasy_stats": fantasy_stats_dict,
-                            f"selections.{selection_index}.total_points": total_points,
-                            f"score": lineup_score
-                        }
-                    }
-                )  
+                    )  
 
-            found_matchup = matchups.find_one({"team_1_id": ObjectId(lineup["contestant_id"]), "season": current_season, "week": current_week})  
+                found_matchup = matchups.find_one({"team_1_id": ObjectId(lineup["contestant_id"]), "season": current_season, "week": current_week})  
 
-            if found_matchup:
-                matchups.update_one(
-                    {"_id": ObjectId(found_matchup["_id"])},
-                    {
-                        "$set": { 
-                            f"team_1_score": lineup_score
+                if found_matchup:
+                    matchups.update_one(
+                        {"_id": ObjectId(found_matchup["_id"])},
+                        {
+                            "$set": { 
+                                f"team_1_score": lineup_score
+                            }
                         }
-                    }
-                )  
-            else:
-                found_matchup_two = matchups.find_one({"team_2_id": ObjectId(lineup["contestant_id"]), "season": current_season, "week": current_week}) 
-                matchups.update_one(
-                    {"_id": ObjectId(found_matchup_two["_id"])},
-                    {
-                        "$set": { 
-                            f"team_2_score": lineup_score
+                    )  
+                else:
+                    found_matchup_two = matchups.find_one({"team_2_id": ObjectId(lineup["contestant_id"]), "season": current_season, "week": current_week}) 
+                    matchups.update_one(
+                        {"_id": ObjectId(found_matchup_two["_id"])},
+                        {
+                            "$set": { 
+                                f"team_2_score": lineup_score
+                            }
                         }
-                    }
-                )   
-    
+                    )   
+        except Exception as e: print(e)
+
     return
 
 data = get_player_game_logs()
