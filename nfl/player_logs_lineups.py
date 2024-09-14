@@ -8,7 +8,7 @@ load_dotenv(find_dotenv())
 
 client = MongoClient(os.environ["MONGODB_URI"])
 
-current_week = 1
+current_week = 2
 current_season = 2024
 
 db = client.ff_db
@@ -123,6 +123,10 @@ def get_player_game_logs():
                             game_log["team_abbv"] = player["teamAbv"]
                             game_log["season"] = current_season
                             game_log["week"] = current_week
+                            if player["teamAbv"] == box["home"]:
+                                game_log["opponent"] = box["away"]
+                            else:
+                                game_log["opponent"] = box["home"]
                             game_log["pass_yds"] = int(get_nested(player, ["Passing", "passYds"]))
                             game_log["pass_tds"] = int(get_nested(player, ["Passing", "passTD"]))
                             game_log["ints"] = int(get_nested(player, ["Passing", "int"]))
