@@ -52,7 +52,7 @@ def get_player_game_logs():
         game_res = requests.get(game_url, headers=headers, params=game_querystring)
 
         box = game_res.json()["body"]
-        if "gameStatus" in box.keys() and box["gameStatus"] != "Completed":
+        if "gameStatus" in box.keys():
             if int(game["teamIDHome"]) not in locked_teams:
                 locked_teams.append(int(game["teamIDHome"]))
                 locked_teams.append(int(game["teamIDAway"]))
