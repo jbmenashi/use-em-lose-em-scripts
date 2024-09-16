@@ -52,7 +52,7 @@ def get_player_game_logs():
         game_res = requests.get(game_url, headers=headers, params=game_querystring)
 
         box = game_res.json()["body"]
-        if "gameStatus" in box.keys():
+        if "gameStatus" in box.keys() and box["gameStatus"] != "Completed":
             if int(game["teamIDHome"]) not in locked_teams:
                 locked_teams.append(int(game["teamIDHome"]))
                 locked_teams.append(int(game["teamIDAway"]))
@@ -109,10 +109,10 @@ def get_player_game_logs():
                                     "yahoo_pts": round(float(player["fantasyPoints"]), 2)
                                 }}
                             )       
-                            print(f"updated {player['longName']}")
+                            print(f"updated {player['playerID']} {player['longName']}")
                             updated_players.append(player["playerID"])
                         else:
-                            print(f"no change for {player['longName']}")
+                            print(f"no change for {player['playerID']} {player['longName']}")
                                 
                     else:
                         if "Passing" in player.keys() or "Rushing" in player.keys() or "Receiving" in player.keys():
@@ -147,7 +147,7 @@ def get_player_game_logs():
                             
                             game_log_inserts.append(game_log)
                             
-                            print(f"inserted new game log for {player['longName']}")
+                            print(f"inserted new game log for {player['playerID']} {player['longName']}")
                             updated_players.append(int(player["playerID"]))
 
             for d in box["DST"]:
@@ -234,7 +234,6 @@ def get_player_game_logs():
     return data
 
 def update_lineups(updated_players, locked_teams):
-    print(locked_teams)
     found_team_lineups = lineups.find({"week": current_week, "season": current_season})
 
     for lineup in found_team_lineups:
@@ -251,17 +250,16 @@ def update_lineups(updated_players, locked_teams):
 
     # iterate through list of player IDs
     for player in updated_players:
-        print(f"checking lineups for player {player}")
+        print(f"checking lineups for player {player} {current_season} {current_week}")
         try:
-            game_log = nfl_game_logs.find_one({"player_id": player, "week": current_week, "season": current_season})
+            game_log = nfl_game_logs.find_one({"player_id": int(player), "week": int(current_week), "season": int(current_season)})
         # find lineups with that player Id and matches current week
-            found_player_lineups = lineups.find({"selections.player_id": player, "week": current_week, "season": current_season}) 
+            found_player_lineups = lineups.find({"selections.player_id": int(player), "week": int(current_week), "season": int(current_season)}) 
 
             for lineup in found_player_lineups:
                 print(f"found selection for {player} in lineup {lineup['_id']}")
                 league = leagues.find_one({"_id": ObjectId(lineup["league_id"])})
                 scoring = league["scoring"]["statistics"]
-
                 game_log_fantasy_stats = {}
                 for k, v in scoring.items():
                     if k == "def_pts_allowed" and game_log["player_id"] == game_log["team_id"]:
@@ -282,12 +280,9 @@ def update_lineups(updated_players, locked_teams):
                     else:
                         game_log_fantasy_stats[k] = round(game_log[k] * v, 2)
                     # defensive points allowed
-
                 fantasy_stats_dict = { k:v for (k,v) in game_log_fantasy_stats.items()}
                 total_points = sum(round(value, 2) for value in game_log_fantasy_stats.values())
-
-                selection_index = next((i for i, item in enumerate(lineup["selections"]) if item["player_id"] == player))
-
+                selection_index = next((i for i, item in enumerate(lineup["selections"]) if item["player_id"] == int(player)))
                 lineup_score = 0
                 for selection in lineup["selections"]:
                     if selection["index"] != selection_index and "total_points" in selection.keys():
@@ -296,7 +291,7 @@ def update_lineups(updated_players, locked_teams):
                 lineup_score += total_points
 
                 if "fantasy_stats" not in lineup["selections"][selection_index].keys():
-                    print("first game log for player")
+                    print("inserting first fantasy stats for player in lineup")
 
                     lineups.update_one(
                         {"_id": ObjectId(lineup["_id"])},
@@ -310,6 +305,7 @@ def update_lineups(updated_players, locked_teams):
                         }
                     )   
                 else:
+                    print("updating fantasy stats for player in lineup")
                     lineups.update_one(
                         {"_id": ObjectId(lineup["_id"])},
                         {
