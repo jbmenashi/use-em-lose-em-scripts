@@ -42,7 +42,7 @@ def get_player_projections():
 
     url = "https://tank01-nfl-live-in-game-real-time-statistics-nfl.p.rapidapi.com/getNFLProjections"
 
-    querystring = {"week":"1","archiveSeason":"2024","twoPointConversions":"2","passYards":".04","passAttempts":"0","passTD":"4","passCompletions":"0","passInterceptions":"-1","pointsPerReception":"0.5","carries":"0","rushYards":".1","rushTD":"6","fumbles":"-2","receivingYards":".1","receivingTD":"6","targets":"0","fgMade":"0","fgMissed":"0","xpMade":"0","xpMissed":"0"}
+    querystring = {f"week":{projection_week},"archiveSeason":"2024","twoPointConversions":"2","passYards":".04","passAttempts":"0","passTD":"4","passCompletions":"0","passInterceptions":"-1","pointsPerReception":"0.5","carries":"0","rushYards":".1","rushTD":"6","fumbles":"-2","receivingYards":".1","receivingTD":"6","targets":"0","fgMade":"0","fgMissed":"0","xpMade":"0","xpMissed":"0"}
 
     headers = {
         "x-rapidapi-key": os.environ["RAPID_API_KEY"],
