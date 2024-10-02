@@ -8,7 +8,7 @@ load_dotenv(find_dotenv())
 
 client = MongoClient(os.environ["MONGODB_URI"])
 
-current_week = 4
+current_week = 5
 current_season = 2024
 
 db = client.ff_db
