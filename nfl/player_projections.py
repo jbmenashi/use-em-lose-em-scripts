@@ -11,7 +11,7 @@ db = client.ff_db
 player_projections = db["PlayerProjections"]
 
 projection_season = 2024
-projection_week = 5
+projection_week = 6
 
 def get_player_projections():
     schedule_url = "https://tank01-nfl-live-in-game-real-time-statistics-nfl.p.rapidapi.com/getNFLGamesForWeek"
@@ -219,10 +219,16 @@ def get_player_projections():
             projection["sport"] = "NFL"
             projection["season"] = projection_season
             projection["week"] = projection_week
-            projection["opponent"] = games[f"{dst['teamID']}"]["opponent"]
-            projection["opponent_team_id"] = int(games[f"{dst['teamID']}"]["opponent_id"])
-            projection["location"] = games[f"{dst['teamID']}"]["location"]
-            projection["game_time"] = games[f"{dst['teamID']}"]["game_time"]
+            if f"{dst['teamID']}" in games.keys():
+                projection["opponent"] = games[f"{dst['teamID']}"]["opponent"]
+                projection["opponent_team_id"] = int(games[f"{dst['teamID']}"]["opponent_id"])
+                projection["location"] = games[f"{dst['teamID']}"]["location"]
+                projection["game_time"] = games[f"{dst['teamID']}"]["game_time"]
+            else:
+                projection["opponent"] = ""
+                projection["opponent_team_id"] = 0
+                projection["location"] = ""
+                projection["game_time"] = ""          
             projection["stats"] = {}
             projection["stats"]["pass_yds"] = 0
             projection["stats"]["pass_tds"] = 0
