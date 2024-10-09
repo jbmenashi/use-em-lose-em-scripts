@@ -26,12 +26,13 @@ def get_player_projections():
     schedule_res = requests.get(schedule_url, headers=schedule_headers, params=schedule_querystring)
     games = {}
     for game in schedule_res.json()["body"]:
+        print("home", game['teamIDHome'])
         games[f"{game['teamIDHome']}"] = {}
         games[f"{game['teamIDHome']}"]["location"] = "Home"
         games[f"{game['teamIDHome']}"]["opponent"] = game["away"]
         games[f"{game['teamIDHome']}"]["opponent_id"] = game['teamIDAway']
         games[f"{game['teamIDHome']}"]["game_time"] = game["gameTime"]
-
+        print("away", game['teamIDAway'])
         games[f"{game['teamIDAway']}"] = {}
         games[f"{game['teamIDAway']}"]["location"] = "Away"
         games[f"{game['teamIDAway']}"]["opponent"] = game["home"]
@@ -109,7 +110,7 @@ def get_player_projections():
                 print(f"no projection change for {player['longName']} for week {projection_week}")
                     
         else:
-            if player["pos"] in ["QB", "RB", "WR", "TE", "FB"]:
+            if player["pos"] in ["QB", "RB", "WR", "TE", "FB"] and player["teamID"] in games.keys():
                 projection = {}
                 projection["player_id"] = int(player["playerID"])
                 projection["player_name"] = player["longName"]
