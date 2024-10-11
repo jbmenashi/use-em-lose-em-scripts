@@ -3,6 +3,7 @@ from bson import ObjectId
 import requests
 from dotenv import load_dotenv, find_dotenv
 import os
+from datetime import datetime
 
 load_dotenv(find_dotenv())
 
@@ -31,13 +32,13 @@ def get_player_projections():
         games[f"{game['teamIDHome']}"]["location"] = "Home"
         games[f"{game['teamIDHome']}"]["opponent"] = game["away"]
         games[f"{game['teamIDHome']}"]["opponent_id"] = game['teamIDAway']
-        games[f"{game['teamIDHome']}"]["game_time"] = game["gameTime"]
+        games[f"{game['teamIDHome']}"]["game_time"] = datetime.strptime(game["gameDate"], "%Y%m%d").strftime("%a") + " " + game["gameTime"]
         print("away", game['teamIDAway'])
         games[f"{game['teamIDAway']}"] = {}
         games[f"{game['teamIDAway']}"]["location"] = "Away"
         games[f"{game['teamIDAway']}"]["opponent"] = game["home"]
         games[f"{game['teamIDAway']}"]["opponent_id"] = game['teamIDHome']
-        games[f"{game['teamIDAway']}"]["game_time"] = game["gameTime"]
+        games[f"{game['teamIDAway']}"]["game_time"] = datetime.strptime(game["gameDate"], "%Y%m%d").strftime("%a") + " " + game["gameTime"]
 
     projection_inserts = []
 
