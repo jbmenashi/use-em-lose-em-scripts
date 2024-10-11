@@ -16,6 +16,7 @@ nfl_game_logs = db["NFLGameLogs"]
 lineups = db["Lineups"]
 leagues = db["Leagues"]
 matchups = db["Matchups"]
+games = db["Games"]
 
 def get_nested(d, keys, default=0):
     for key in keys:
@@ -26,6 +27,52 @@ def get_nested(d, keys, default=0):
     return d
 
 game_log_inserts = []
+
+def get_games():
+    schedule_url = "https://tank01-nfl-live-in-game-real-time-statistics-nfl.p.rapidapi.com/getNFLGamesForWeek"
+
+    schedule_querystring = {"week":f"{current_week}","seasonType":"reg","season":f"{current_season}"}
+
+    schedule_headers = {
+        "x-rapidapi-key": os.environ["RAPID_API_KEY"],
+        "x-rapidapi-host": "tank01-nfl-live-in-game-real-time-statistics-nfl.p.rapidapi.com"
+    }
+
+    schedule_res = requests.get(schedule_url, headers=schedule_headers, params=schedule_querystring)
+    for game in schedule_res.json()["body"]:
+        if game_exists := games.find_one({
+                "game_id": game["gameID"],
+                "season": current_season,
+                "week": current_week
+            }) is not None:
+            found_game = games.find_one({
+                 "game_id": game["gameID"],
+                "season": current_season,
+                "week": current_week
+            })
+
+            if game["gameStatus"] != "Scheduled" and found_game["locked"] == False:
+                games.update_one(
+                    {"_id": ObjectId(found_game["_id"])},
+                    {"$set": {
+                        "locked": True
+                    }}
+                )  
+                print(f"locked game {game['gameID']}")  
+            else:
+                print(f"{game['gameID']} not updated")
+        else:
+            new_game = {}
+            new_game["game_id"] = game["gameID"]
+            new_game["season"] = current_season
+            new_game["week"] = current_week
+            new_game["home_team_id"] = int(game["teamIDHome"])
+            new_game["away_team_id"] = int(game["teamIDAway"])
+            new_game["locked"] = False
+            
+            games.insert_one(new_game)
+            print(f"inserted new game {game['gameID']}")
+    return
 
 def get_player_game_logs():
     updated_players = []
@@ -342,6 +389,7 @@ def update_lineups(updated_players, locked_teams):
 
     return
 
+get_games()
 data = get_player_game_logs()
 update_lineups(data["players"], data["teams"])
 
