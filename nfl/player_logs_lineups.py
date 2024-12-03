@@ -262,7 +262,7 @@ def get_player_game_logs():
                     game_log["def_fumble_rec"] = int(dst["fumblesRecovered"])
                     game_log["def_ints"] = int(dst["defensiveInterceptions"])
                     game_log["def_blk_kicks"] = 0
-                    game_log["def_safeties"] = int(dst["safeties"])
+                    game_log["def_safeties"] = 0
                     game_log["def_tds_scored"] = int(dst["defTD"])
                     game_log["yahoo_pts"] = 0
                     
