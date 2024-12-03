@@ -8,7 +8,7 @@ load_dotenv(find_dotenv())
 
 client = MongoClient(os.environ["MONGODB_URI"])
 
-current_week = 13
+current_week = 14
 current_season = 2024
 
 db = client.ff_db
@@ -329,14 +329,16 @@ def update_lineups(updated_players, locked_teams):
                     # defensive points allowed
                 fantasy_stats_dict = { k:v for (k,v) in game_log_fantasy_stats.items()}
                 total_points = sum(round(value, 2) for value in game_log_fantasy_stats.values())
-                # selection_index = next((i for i, item in enumerate(lineup["selections"]) if item["player_id"] == int(player)))
+                selection_index = next((i for i, item in enumerate(lineup["selections"]) if item["player_id"] == int(player)))
                 lineup_score = 0
                 for selection in lineup["selections"]:
-                    if "player_id" in selection.keys():
-                        if selection["player_id"] == player:
-                            selection_index = selection["index"]
-                        if selection["player_id"] != player and "total_points" in selection.keys():
-                            lineup_score += selection["total_points"]
+                    # if "player_id" in selection.keys():
+                    #     if selection["player_id"] == player:
+                    #         selection_index = selection["index"]
+                    #     if selection["player_id"] != player and "total_points" in selection.keys():
+                    #         lineup_score += selection["total_points"]
+                    if selection["index"] != selection_index and "total_points" in selection.keys():
+                        lineup_score += selection["total_points"]
                         
                 lineup_score += total_points
 
