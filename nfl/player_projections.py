@@ -12,7 +12,7 @@ db = client.ff_db
 player_projections = db["PlayerProjections"]
 
 projection_season = 2024
-projection_week = 17
+projection_week = 18
 
 def get_player_projections():
     schedule_url = "https://tank01-nfl-live-in-game-real-time-statistics-nfl.p.rapidapi.com/getNFLGamesForWeek"
