@@ -11,12 +11,12 @@ client = MongoClient(os.environ["MONGODB_URI"])
 current_week = 18
 current_season = 2024
 
-db = client.ff_db
-nfl_game_logs = db["NFLGameLogs"]
-lineups = db["Lineups"]
-leagues = db["Leagues"]
-matchups = db["Matchups"]
-games = db["Games"]
+db = client.uele2
+nfl_game_logs = db["nflgamelogs"]
+lineups = db["lineups"]
+leagues = db["leagues"]
+matchups = db["matchups"]
+games = db["games"]
 
 def get_nested(d, keys, default=0):
     for key in keys:
@@ -41,12 +41,12 @@ def get_games():
     schedule_res = requests.get(schedule_url, headers=schedule_headers, params=schedule_querystring)
     for game in schedule_res.json()["body"]:
         if game_exists := games.find_one({
-                "game_id": game["gameID"],
+                "gameId": game["gameID"],
                 "season": current_season,
                 "week": current_week
             }) is not None:
             found_game = games.find_one({
-                 "game_id": game["gameID"],
+                 "gameId": game["gameID"],
                 "season": current_season,
                 "week": current_week
             })
@@ -63,11 +63,11 @@ def get_games():
                 print(f"{game['gameID']} not updated")
         else:
             new_game = {}
-            new_game["game_id"] = game["gameID"]
+            new_game["gameId"] = game["gameID"]
             new_game["season"] = current_season
             new_game["week"] = current_week
-            new_game["home_team_id"] = int(game["teamIDHome"])
-            new_game["away_team_id"] = int(game["teamIDAway"])
+            new_game["homeTeamId"] = int(game["teamIDHome"])
+            new_game["awayTeamId"] = int(game["teamIDAway"])
             new_game["locked"] = False
             
             games.insert_one(new_game)
@@ -90,11 +90,11 @@ def get_player_game_logs():
     res = requests.get(url, headers=headers, params=querystring)
 
     for game in res.json()["body"]:
-        game_id = game["gameID"]
+        gameId = game["gameID"]
 
         game_url = "https://tank01-nfl-live-in-game-real-time-statistics-nfl.p.rapidapi.com/getNFLBoxScore"
 
-        game_querystring = {"gameID":f"{game_id}","fantasyPoints":"true","twoPointConversions":"2","passYards":".04","passAttempts":"0","passTD":"4","passCompletions":"0","passInterceptions":"-1","pointsPerReception":".5","carries":"0","rushYards":".1","rushTD":"6","fumbles":"-2","receivingYards":".1","receivingTD":"6","targets":"0","defTD":"6"}
+        game_querystring = {"gameID":f"{gameId}","fantasyPoints":"true","twoPointConversions":"2","passYards":".04","passAttempts":"0","passTD":"4","passCompletions":"0","passInterceptions":"-1","pointsPerReception":".5","carries":"0","rushYards":".1","rushTD":"6","fumbles":"-2","receivingYards":".1","receivingTD":"6","targets":"0","defTD":"6"}
 
         game_res = requests.get(game_url, headers=headers, params=game_querystring)
 
@@ -103,57 +103,57 @@ def get_player_game_logs():
             if int(game["teamIDHome"]) not in locked_teams:
                 locked_teams.append(int(game["teamIDHome"]))
                 locked_teams.append(int(game["teamIDAway"]))
-            print(game_id)
+            print(gameId)
             for p in box["playerStats"]:
                 player = box["playerStats"][p]
                 if "Rushing" in player.keys() or "Passing" in player.keys() or "Receiving" in player.keys():
 
                     if game_log_exists := nfl_game_logs.find_one({
-                            "player_id": int(player["playerID"]),
+                            "playerId": int(player["playerID"]),
                             "season": current_season,
                             "week": current_week
                         }) is not None:
                         found_game_log = nfl_game_logs.find_one({
-                            "player_id": int(player["playerID"]),
+                            "playerId": int(player["playerID"]),
                             "season": current_season,
                             "week": current_week
                         })
                         update = 0
-                        if found_game_log["pass_yds"] != int(get_nested(player, ["Passing", "passYds"])):
+                        if found_game_log["passYds"] != int(get_nested(player, ["Passing", "passYds"])):
                             update = 1
-                        if found_game_log["pass_tds"] != int(get_nested(player, ["Passing", "passTD"])):
+                        if found_game_log["passTds"] != int(get_nested(player, ["Passing", "passTD"])):
                             update = 1
                         if found_game_log["ints"] != int(get_nested(player, ["Passing", "int"])):
                             update = 1    
-                        if found_game_log["rush_yds"] != int(get_nested(player, ["Rushing", "rushYds"])):
+                        if found_game_log["rushYds"] != int(get_nested(player, ["Rushing", "rushYds"])):
                             update = 1     
                         if found_game_log["receptions"] != int(get_nested(player, ["Receiving", "receptions"])):
                             update = 1    
-                        if found_game_log["rec_yds"] != int(get_nested(player, ["Receiving", "recYds"])):
+                        if found_game_log["recYds"] != int(get_nested(player, ["Receiving", "recYds"])):
                             update = 1    
                         if found_game_log["fumbles"] != int(get_nested(player, ["Defense", "fumblesLost"])):
                             update = 1   
                         if found_game_log["tds"] != int(get_nested(player, ["Rushing", "rushTD"])) + int(get_nested(player, ["Receiving", "recTD"])) + int(get_nested(player, ["Kicking", "kickReturnTD"])) + int(get_nested(player, ["Punting", "puntReturnTD"])):
                             update = 1    
-                        if found_game_log["two_pt_conv"] != int(get_nested(player, ["Passing", "passingTwoPointConversion"])) + int(get_nested(player, ["Rushing", "rushingTwoPointConversion"])) + int(get_nested(player, ["Receiving", "receivingTwoPointConversion"])):
+                        if found_game_log["twoPtConv"] != int(get_nested(player, ["Passing", "passingTwoPointConversion"])) + int(get_nested(player, ["Rushing", "rushingTwoPointConversion"])) + int(get_nested(player, ["Receiving", "receivingTwoPointConversion"])):
                             update = 1
-                        if found_game_log["yahoo_pts"] != round(float(player["fantasyPoints"]), 2):
+                        if found_game_log["yahooPts"] != round(float(player["fantasyPoints"]), 2):
                             update = 1  
 
                         if update == 1:
                             nfl_game_logs.update_one(
                                 {"_id": ObjectId(found_game_log["_id"])},
                                 {"$set": {
-                                    "pass_yds": int(get_nested(player, ["Passing", "passYds"])),
-                                    "pass_tds": int(get_nested(player, ["Passing", "passTD"])),
+                                    "passYds": int(get_nested(player, ["Passing", "passYds"])),
+                                    "passTds": int(get_nested(player, ["Passing", "passTD"])),
                                     "ints": int(get_nested(player, ["Passing", "int"])),
-                                    "rush_yds": int(get_nested(player, ["Rushing", "rushYds"])),
+                                    "rushYds": int(get_nested(player, ["Rushing", "rushYds"])),
                                     "receptions": int(get_nested(player, ["Receiving", "receptions"])),
-                                    "rec_yds": int(get_nested(player, ["Receiving", "recYds"])),
+                                    "recYds": int(get_nested(player, ["Receiving", "recYds"])),
                                     "fumbles": int(get_nested(player, ["Defense", "fumblesLost"])),
                                     "tds": int(get_nested(player, ["Rushing", "rushTD"])) + int(get_nested(player, ["Receiving", "recTD"])) + int(get_nested(player, ["Kicking", "kickReturnTD"])) + int(get_nested(player, ["Punting", "puntReturnTD"])),
-                                    "two_pt_conv": int(get_nested(player, ["Passing", "passingTwoPointConversion"])) + int(get_nested(player, ["Rushing", "rushingTwoPointConversion"])) + int(get_nested(player, ["Receiving", "receivingTwoPointConversion"])),
-                                    "yahoo_pts": round(float(player["fantasyPoints"]), 2)
+                                    "twoPtConv": int(get_nested(player, ["Passing", "passingTwoPointConversion"])) + int(get_nested(player, ["Rushing", "rushingTwoPointConversion"])) + int(get_nested(player, ["Receiving", "receivingTwoPointConversion"])),
+                                    "yahooPts": round(float(player["fantasyPoints"]), 2)
                                 }}
                             )       
                             print(f"updated {player['playerID']} {player['longName']}")
@@ -164,33 +164,33 @@ def get_player_game_logs():
                     else:
                         if "Passing" in player.keys() or "Rushing" in player.keys() or "Receiving" in player.keys():
                             game_log = {}
-                            game_log["player_id"] = int(player["playerID"])
-                            game_log["player_name"] = player["longName"]
-                            game_log["team_id"] = int(player["teamID"])
-                            game_log["team_abbv"] = player["teamAbv"]
+                            game_log["playerId"] = int(player["playerID"])
+                            game_log["playerName"] = player["longName"]
+                            game_log["teamId"] = int(player["teamID"])
+                            game_log["teamAbbv"] = player["teamAbv"]
                             game_log["season"] = current_season
                             game_log["week"] = current_week
                             if player["teamAbv"] == box["home"]:
                                 game_log["opponent"] = box["away"]
                             else:
                                 game_log["opponent"] = box["home"]
-                            game_log["pass_yds"] = int(get_nested(player, ["Passing", "passYds"]))
-                            game_log["pass_tds"] = int(get_nested(player, ["Passing", "passTD"]))
+                            game_log["passYds"] = int(get_nested(player, ["Passing", "passYds"]))
+                            game_log["passTds"] = int(get_nested(player, ["Passing", "passTD"]))
                             game_log["ints"] = int(get_nested(player, ["Passing", "int"]))
-                            game_log["rush_yds"] = int(get_nested(player, ["Rushing", "rushYds"]))
+                            game_log["rushYds"] = int(get_nested(player, ["Rushing", "rushYds"]))
                             game_log["receptions"] = int(get_nested(player, ["Receiving", "receptions"]))
-                            game_log["rec_yds"] = int(get_nested(player, ["Receiving", "recYds"]))
+                            game_log["recYds"] = int(get_nested(player, ["Receiving", "recYds"]))
                             game_log["fumbles"] = int(get_nested(player, ["Defense", "fumblesLost"]))
                             game_log["tds"] = int(get_nested(player, ["Rushing", "rushTD"])) + int(get_nested(player, ["Receiving", "recTD"])) + int(get_nested(player, ["Kicking", "kickReturnTD"])) + int(get_nested(player, ["Punting", "puntReturnTD"]))
-                            game_log["two_pt_conv"] = int(get_nested(player, ["Passing", "passingTwoPointConversion"])) + int(get_nested(player, ["Rushing", "rushingTwoPointConversion"])) + int(get_nested(player, ["Receiving", "receivingTwoPointConversion"]))
-                            game_log["def_pts_allowed"] = 0
-                            game_log["def_sacks"] = 0
-                            game_log["def_fumble_rec"] = 0
-                            game_log["def_ints"] = 0
-                            game_log["def_blk_kicks"] = 0
-                            game_log["def_safeties"] = 0
-                            game_log["def_tds_scored"] = 0
-                            game_log["yahoo_pts"] = round(float(player["fantasyPoints"]), 2)
+                            game_log["twoPtConv"] = int(get_nested(player, ["Passing", "passingTwoPointConversion"])) + int(get_nested(player, ["Rushing", "rushingTwoPointConversion"])) + int(get_nested(player, ["Receiving", "receivingTwoPointConversion"]))
+                            game_log["defPtsAllowed"] = 0
+                            game_log["defSacks"] = 0
+                            game_log["defFumbleRec"] = 0
+                            game_log["defInts"] = 0
+                            game_log["defBlkKicks"] = 0
+                            game_log["defSafeties"] = 0
+                            game_log["defTdsScored"] = 0
+                            game_log["yahooPts"] = round(float(player["fantasyPoints"]), 2)
                             
                             game_log_inserts.append(game_log)
                             
@@ -200,39 +200,39 @@ def get_player_game_logs():
             for d in box["DST"]:
                 dst = box["DST"][d]
                 if game_log_exists := nfl_game_logs.find_one({
-                        "player_id": int(dst["teamID"]),
+                        "playerId": int(dst["teamID"]),
                         "season": current_season,
                         "week": current_week
                     }) is not None:
                     found_game_log = nfl_game_logs.find_one({
-                        "player_id": int(dst["teamID"]),
+                        "playerId": int(dst["teamID"]),
                         "season": current_season,
                         "week": current_week
                     })
                     update = 0
-                    if found_game_log["def_pts_allowed"] != int(dst["ptsAllowed"]):
+                    if found_game_log["defPtsAllowed"] != int(dst["ptsAllowed"]):
                         update = 1
-                    if found_game_log["def_sacks"] != int(dst["sacks"]):
+                    if found_game_log["defSacks"] != int(dst["sacks"]):
                         update = 1
-                    if found_game_log["def_fumble_rec"] != int(dst["fumblesRecovered"]):
+                    if found_game_log["defFumbleRec"] != int(dst["fumblesRecovered"]):
                         update = 1    
-                    if found_game_log["def_ints"] != int(dst["defensiveInterceptions"]):
+                    if found_game_log["defInts"] != int(dst["defensiveInterceptions"]):
                         update = 1      
-                    if found_game_log["def_safeties"] != int(dst["safeties"]):
+                    if found_game_log["defSafeties"] != int(dst["safeties"]):
                         update = 1    
-                    if found_game_log["def_tds_scored"] != int(dst["defTD"]):
+                    if found_game_log["defTdsScored"] != int(dst["defTD"]):
                         update = 1   
 
                     if update == 1:
                         nfl_game_logs.update_one(
                             {"_id": ObjectId(found_game_log["_id"])},
                             {"$set": {
-                                "def_pts_allowed": int(dst["ptsAllowed"]),
-                                "def_sacks": int(dst["sacks"]),
-                                "def_fumble_rec": int(dst["fumblesRecovered"]),
-                                "def_ints": int(dst["defensiveInterceptions"]),
-                                "def_safeties": int(dst["safeties"]),
-                                "def_tds_scored": int(dst["defTD"]),
+                                "defPtsAllowed": int(dst["ptsAllowed"]),
+                                "defSacks": int(dst["sacks"]),
+                                "defFumbleRec": int(dst["fumblesRecovered"]),
+                                "defInts": int(dst["defensiveInterceptions"]),
+                                "defSafeties": int(dst["safeties"]),
+                                "defTdsScored": int(dst["defTD"]),
                             }}
                         )       
                         print(f"updated {dst['teamAbv']}")
@@ -242,29 +242,29 @@ def get_player_game_logs():
                             
                 else:
                     game_log = {}
-                    game_log["player_id"] = int(dst["teamID"])
-                    game_log["player_name"] = dst["teamAbv"] + " Defense"
-                    game_log["team_id"] = int(dst["teamID"])
-                    game_log["team_abbv"] = dst["teamAbv"]
+                    game_log["playerId"] = int(dst["teamID"])
+                    game_log["playerName"] = dst["teamAbv"] + " Defense"
+                    game_log["teamId"] = int(dst["teamID"])
+                    game_log["teamAbbv"] = dst["teamAbv"]
                     game_log["season"] = current_season
                     game_log["week"] = current_week
-                    game_log["pass_yds"] = 0
-                    game_log["pass_tds"] = 0
+                    game_log["passYds"] = 0
+                    game_log["passTds"] = 0
                     game_log["ints"] = 0
-                    game_log["rush_yds"] = 0
+                    game_log["rushYds"] = 0
                     game_log["receptions"] = 0
-                    game_log["rec_yds"] = 0
+                    game_log["recYds"] = 0
                     game_log["fumbles"] = 0
                     game_log["tds"] = 0
-                    game_log["two_pt_conv"] = 0
-                    game_log["def_pts_allowed"] = int(dst["ptsAllowed"])
-                    game_log["def_sacks"] = int(dst["sacks"])
-                    game_log["def_fumble_rec"] = int(dst["fumblesRecovered"])
-                    game_log["def_ints"] = int(dst["defensiveInterceptions"])
-                    game_log["def_blk_kicks"] = 0
-                    game_log["def_safeties"] = 0
-                    game_log["def_tds_scored"] = int(dst["defTD"])
-                    game_log["yahoo_pts"] = 0
+                    game_log["twoPtConv"] = 0
+                    game_log["defPtsAllowed"] = int(dst["ptsAllowed"])
+                    game_log["defSacks"] = int(dst["sacks"])
+                    game_log["defFumbleRec"] = int(dst["fumblesRecovered"])
+                    game_log["defInts"] = int(dst["defensiveInterceptions"])
+                    game_log["defBlkKicks"] = 0
+                    game_log["defSafeties"] = 0
+                    game_log["defTdsScored"] = int(dst["defTD"])
+                    game_log["yahooPts"] = 0
                     
                     game_log_inserts.append(game_log)
                     
@@ -285,7 +285,7 @@ def update_lineups(updated_players, locked_teams):
 
     for lineup in found_team_lineups:
         for idx, selection in enumerate(lineup["selections"]):
-            if "team_id" in selection.keys() and selection["team_id"] in locked_teams:
+            if "teamId" in selection.keys() and selection["teamId"] in locked_teams:
                 lineups.update_one(
                     {"_id": ObjectId(lineup["_id"])},
                     {
@@ -299,17 +299,17 @@ def update_lineups(updated_players, locked_teams):
     for player in updated_players:
         print(f"checking lineups for player {player} {current_season} {current_week}")
         try:
-            game_log = nfl_game_logs.find_one({"player_id": int(player), "week": int(current_week), "season": int(current_season)})
+            game_log = nfl_game_logs.find_one({"playerId": int(player), "week": int(current_week), "season": int(current_season)})
         # find lineups with that player Id and matches current week
-            found_player_lineups = lineups.find({"selections.player_id": int(player), "week": int(current_week), "season": int(current_season)}) 
+            found_player_lineups = lineups.find({"selections.playerId": int(player), "week": int(current_week), "season": int(current_season)})
 
             for lineup in found_player_lineups:
                 print(f"found selection for {player} in lineup {lineup['_id']}")
-                league = leagues.find_one({"_id": ObjectId(lineup["league_id"])})
+                league = leagues.find_one({"_id": ObjectId(lineup["leagueId"])})
                 scoring = league["scoring"]["statistics"]
                 game_log_fantasy_stats = {}
                 for k, v in scoring.items():
-                    if k == "def_pts_allowed" and game_log["player_id"] == game_log["team_id"]:
+                    if k == "defPtsAllowed" and game_log["playerId"] == game_log["teamId"]:
                         if game_log[k] == 0:
                             game_log_fantasy_stats[k] = 10
                         elif game_log[k] > 0 and game_log[k] < 7:
@@ -329,67 +329,67 @@ def update_lineups(updated_players, locked_teams):
                     # defensive points allowed
                 fantasy_stats_dict = { k:v for (k,v) in game_log_fantasy_stats.items()}
                 total_points = sum(round(value, 2) for value in game_log_fantasy_stats.values())
-                selection_index = next((i for i, item in enumerate(lineup["selections"]) if item["player_id"] == int(player)))
+                selection_index = next((i for i, item in enumerate(lineup["selections"]) if item["playerId"] == int(player)))
                 lineup_score = 0
                 for selection in lineup["selections"]:
-                    # if "player_id" in selection.keys():
-                    #     if selection["player_id"] == player:
+                    # if "playerId" in selection.keys():
+                    #     if selection["playerId"] == player:
                     #         selection_index = selection["index"]
-                    #     if selection["player_id"] != player and "total_points" in selection.keys():
-                    #         lineup_score += selection["total_points"]
-                    if selection["index"] != selection_index and "total_points" in selection.keys():
-                        lineup_score += selection["total_points"]
-                        
+                    #     if selection["playerId"] != player and "totalPoints" in selection.keys():
+                    #         lineup_score += selection["totalPoints"]
+                    if selection["index"] != selection_index and "totalPoints" in selection.keys():
+                        lineup_score += selection["totalPoints"]
+
                 lineup_score += total_points
 
-                if "fantasy_stats" not in lineup["selections"][selection_index].keys():
+                if "fantasyStats" not in lineup["selections"][selection_index].keys():
                     print("inserting first fantasy stats for player in lineup")
 
                     lineups.update_one(
                         {"_id": ObjectId(lineup["_id"])},
                         {
-                            "$set": { 
+                            "$set": {
                                 f"selections.{selection_index}.locked": True,
-                                f"selections.{selection_index}.fantasy_stats": fantasy_stats_dict,
-                                f"selections.{selection_index}.total_points": total_points,
+                                f"selections.{selection_index}.fantasyStats": fantasy_stats_dict,
+                                f"selections.{selection_index}.totalPoints": total_points,
                                 f"score": lineup_score
                             }
                         }
-                    )   
+                    )
                 else:
                     print("updating fantasy stats for player in lineup")
                     lineups.update_one(
                         {"_id": ObjectId(lineup["_id"])},
                         {
-                            "$set": { 
-                                f"selections.{selection_index}.fantasy_stats": fantasy_stats_dict,
-                                f"selections.{selection_index}.total_points": total_points,
+                            "$set": {
+                                f"selections.{selection_index}.fantasyStats": fantasy_stats_dict,
+                                f"selections.{selection_index}.totalPoints": total_points,
                                 f"score": lineup_score
                             }
                         }
-                    )  
+                    )
 
-                found_matchup = matchups.find_one({"team_1_id": ObjectId(lineup["contestant_id"]), "season": current_season, "week": current_week})  
+                found_matchup = matchups.find_one({"team1Id": ObjectId(lineup["contestantId"]), "season": current_season, "week": current_week})
 
                 if found_matchup:
                     matchups.update_one(
                         {"_id": ObjectId(found_matchup["_id"])},
                         {
-                            "$set": { 
-                                f"team_1_score": lineup_score
+                            "$set": {
+                                f"team1Score": lineup_score
                             }
                         }
-                    )  
+                    )
                 else:
-                    found_matchup_two = matchups.find_one({"team_2_id": ObjectId(lineup["contestant_id"]), "season": current_season, "week": current_week}) 
+                    found_matchup_two = matchups.find_one({"team2Id": ObjectId(lineup["contestantId"]), "season": current_season, "week": current_week})
                     matchups.update_one(
                         {"_id": ObjectId(found_matchup_two["_id"])},
                         {
-                            "$set": { 
-                                f"team_2_score": lineup_score
+                            "$set": {
+                                f"team2Score": lineup_score
                             }
                         }
-                    )   
+                    )
         except Exception as e: print(e)
 
     return

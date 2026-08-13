@@ -10,38 +10,38 @@ load_dotenv(find_dotenv())
 
 client = MongoClient(os.environ["MONGODB_URI"])
 
-game_date = "2023-APR-02"
+gameDate = "2023-APR-02"
 current_week = 1
 current_season = 2023
 
-db = client.ff_db
-player_game_logs = db["PlayerGameLogs"]
-#player_season_stats = db["PlayerSeasonStats"]
-lineups = db["Lineups"]
-leagues = db["Leagues"]
+db = client.uele2
+player_game_logs = db["playergamelogs"]
+#player_season_stats = db["playerseasonstats"]
+lineups = db["lineups"]
+leagues = db["leagues"]
 
 game_log_inserts = []
 
 def get_player_game_logs():
-    res = requests.get(f"https://api.sportsdata.io/v3/mlb/stats/json/PlayerGameStatsByDate/{game_date}?key=e83af77dbf8849018751c5366a98e164")
+    res = requests.get(f"https://api.sportsdata.io/v3/mlb/stats/json/PlayerGameStatsByDate/{gameDate}?key=e83af77dbf8849018751c5366a98e164")
 
     updated_players = []
 
     for player in res.json():
         if game_log_exists := player_game_logs.find_one({
-                "player_id": player["PlayerID"],
-                "game_date": game_date
+                "playerId": player["PlayerID"],
+                "gameDate": gameDate
             }) is not None:
             found_game_log = player_game_logs.find_one({
-                "player_id": player["PlayerID"],
-                "game_date": game_date
+                "playerId": player["PlayerID"],
+                "gameDate": gameDate
             })
             update = 0
             if found_game_log["hits"] != player["Hits"]:
                 update = 1
-            if found_game_log["home_runs"] != player["HomeRuns"]:
+            if found_game_log["homeRuns"] != player["HomeRuns"]:
                 update = 1
-            if found_game_log["runs_batted_in"] != player["RunsBattedIn"]:
+            if found_game_log["runsBattedIn"] != player["RunsBattedIn"]:
                 update = 1    
 
             if update == 1:
@@ -49,8 +49,8 @@ def get_player_game_logs():
                     {"_id": ObjectId(found_game_log["_id"])},
                     {"$set": {
                         "hits": player["Hits"],
-                        "home_runs": player["HomeRuns"],
-                        "runs_batted_in": player["RunsBattedIn"]
+                        "homeRuns": player["HomeRuns"],
+                        "runsBattedIn": player["RunsBattedIn"]
                     }}
                 )       
                 print(f"updated {player["Name"]}")
@@ -61,18 +61,18 @@ def get_player_game_logs():
         else:
             if player["PositionCategory"] != "P":
                 game_log = {}
-                game_log["player_id"] = player["PlayerID"]
-                game_log["player_name"] = player["Name"]
-                game_log["team_id"] = player["TeamID"]
-                game_log["team_abbv"] = player["Team"]
-                game_log["game_date"] = game_date
+                game_log["playerId"] = player["PlayerID"]
+                game_log["playerName"] = player["Name"]
+                game_log["teamId"] = player["TeamID"]
+                game_log["teamAbbv"] = player["Team"]
+                game_log["gameDate"] = gameDate
                 # if player["isGameOver"]:
                 #     game_log["active"] = False
                 # else:
                 #     game_log["active"] = True
                 game_log["hits"] = player["Hits"]
-                game_log["home_runs"] = player["HomeRuns"]
-                game_log["runs_batted_in"] = player["RunsBattedIn"]
+                game_log["homeRuns"] = player["HomeRuns"]
+                game_log["runsBattedIn"] = player["RunsBattedIn"]
                 game_log_inserts.append(game_log)
                 
                 print(f"inserted new game log for {player["Name"]}")
@@ -83,25 +83,25 @@ def get_player_game_logs():
 
     return(updated_players)
 
-# def season_stats(player_ids):
+# def season_stats(playerIds):
 #     new_season_stats = []
-#     for updated_player_id in player_ids:
-#         result = db['PlayerGameLogs'].aggregate([
+#     for updated_playerId in playerIds:
+#         result = db['playergamelogs'].aggregate([
 #             {
 #                 '$match': {
-#                     'player_id': updated_player_id
+#                     'playerId': updated_playerId
 #                 }
 #             }, {
 #                 '$group': {
-#                     '_id': '$player_id', 
-#                     'total_hits': {
+#                     '_id': '$playerId', 
+#                     'totalHits': {
 #                         '$sum': '$hits'
 #                     },
-#                     'total_home_runs': {
-#                         '$sum': '$home_runs'
+#                     'totalHomeRuns': {
+#                         '$sum': '$homeRuns'
 #                     },
-#                     'total_runs_batted_in': {
-#                         '$sum': '$runs_batted_in'
+#                     'totalRunsBattedIn': {
+#                         '$sum': '$runsBattedIn'
 #                     }
 #                 }
 #             }
@@ -110,32 +110,32 @@ def get_player_game_logs():
 #         result_obj = list(result)[0]
 
 #         if season_stat_exists := player_season_stats.find_one({
-#             "player_id": updated_player_id,
+#             "playerId": updated_playerId,
 #             "season": current_season
 #             }) is not None:
 #                 found_season_stat = player_season_stats.find_one({
-#                 "player_id": updated_player_id,
+#                 "playerId": updated_playerId,
 #                 "season": current_season
 #                 })
 #                 player_season_stats.update_one(
 #                     {"_id": ObjectId(found_season_stat["_id"])},
 #                     {"$set": {
-#                         "stats.hits": result_obj["total_hits"],
-#                         "stats.home_runs": result_obj["total_home_runs"],
-#                         "stats.runs_batted_in": result_obj["total_runs_batted_in"]
+#                         "stats.hits": result_obj["totalHits"],
+#                         "stats.homeRuns": result_obj["totalHomeRuns"],
+#                         "stats.runsBattedIn": result_obj["totalRunsBattedIn"]
 #                     }}
 #                 )       
-#                 print(f"updated season stats for player {updated_player_id}")           
+#                 print(f"updated season stats for player {updated_playerId}")           
 #         else:
 #             season_stats = {}
-#             season_stats["player_id"] = updated_player_id
+#             season_stats["playerId"] = updated_playerId
 #             season_stats["season"] = current_season
 #             season_stats["stats"] = {}
-#             season_stats["stats"]["hits"] = result_obj["total_hits"]
-#             season_stats["stats"]["home_runs"] = result_obj["total_home_runs"]
-#             season_stats["stats"]["runs_batted_in"] = result_obj["total_runs_batted_in"]
+#             season_stats["stats"]["hits"] = result_obj["totalHits"]
+#             season_stats["stats"]["homeRuns"] = result_obj["totalHomeRuns"]
+#             season_stats["stats"]["runsBattedIn"] = result_obj["totalRunsBattedIn"]
 #             new_season_stats.append(season_stats)
-#             print(f"Inserting new season stats for player {updated_player_id}")
+#             print(f"Inserting new season stats for player {updated_playerId}")
     
 #     if len(new_season_stats) > 0:
 #         player_season_stats.insert_many(new_season_stats)
@@ -144,93 +144,93 @@ def update_lineups(playerIds):
     # iterate through list of player IDs
     for player in playerIds:
         print(f"checking lineups for player {player}")
-        game_log = player_game_logs.find_one({"game_date": game_date, "player_id": player})
+        game_log = player_game_logs.find_one({"gameDate": gameDate, "playerId": player})
     # find lineups with that player Id and matches current week
-        found_lineups = lineups.find({"selections.player_id": player, "week": current_week})
+        found_lineups = lineups.find({"selections.playerId": player, "week": current_week})
 
         for lineup in found_lineups:
             print(f"found selection for {player} in lineup {lineup["_id"]}")
-            league = leagues.find_one({"_id": ObjectId(lineup["league_id"])})
+            league = leagues.find_one({"_id": ObjectId(lineup["leagueId"])})
             style = league["style"]
             scoring = league["scoring"]["statistics"]
 
             game_log_league_specific = {}
-            game_log_league_specific["game_date"] = game_log["game_date"]
+            game_log_league_specific["gameDate"] = game_log["gameDate"]
             for k, v in scoring.items():
                 game_log_league_specific[k] = game_log[k] * v
 
-            selection_index = next((i for i, item in enumerate(lineup["selections"]) if item["player_id"] == player))
+            selection_index = next((i for i, item in enumerate(lineup["selections"]) if item["playerId"] == player))
 
-            if "game_logs" not in lineup["selections"][selection_index].keys():
+            if "gameLogs" not in lineup["selections"][selection_index].keys():
                 print("first game log for player")
-                stats_dict = { k:v for (k,v) in game_log_league_specific.items() if k != "game_date"}
+                stats_dict = { k:v for (k,v) in game_log_league_specific.items() if k != "gameDate"}
                 lineups.update_one(
                     {"_id": ObjectId(lineup["_id"])},
                     {
-                        "$push": { f"selections.{selection_index}.game_logs": game_log_league_specific },
-                        "$set": { 
+                        "$push": { f"selections.{selection_index}.gameLogs": game_log_league_specific },
+                        "$set": {
                             f"selections.{selection_index}.locked": True,
-                            f"selections.{selection_index}.total_stats": stats_dict
+                            f"selections.{selection_index}.totalStats": stats_dict
                         }
                     }
-                )   
+                )
             else:
                 stats_dict = defaultdict(int)
 
-                game_log_exists = next((item for i, item in enumerate(lineup["selections"][selection_index]["game_logs"]) if item["game_date"] == game_date), None) 
+                game_log_exists = next((item for i, item in enumerate(lineup["selections"][selection_index]["gameLogs"]) if item["gameDate"] == gameDate), None)
 
                 if game_log_exists:
                     print("game log for player updated")
-                    for game_log in lineup["selections"][selection_index]["game_logs"]:
-                        if game_log["game_date"] != game_log_league_specific["game_date"]:
+                    for game_log in lineup["selections"][selection_index]["gameLogs"]:
+                        if game_log["gameDate"] != game_log_league_specific["gameDate"]:
                             for key, value in game_log.items():
-                                if key != "game_date":
+                                if key != "gameDate":
                                     stats_dict[key] += value
 
                     for key, value in game_log_league_specific.items():
-                        if key != "game_date":
+                        if key != "gameDate":
                             stats_dict[key] += value
 
                     lineups.update_one(
                         {"_id": ObjectId(lineup["_id"])},
-                        { "$pull": { f"selections.{selection_index}.game_logs": { "game_date": game_date}}}
+                        { "$pull": { f"selections.{selection_index}.gameLogs": { "gameDate": gameDate}}}
                     )
                     lineups.update_one(
                         {"_id": ObjectId(lineup["_id"])},
                         {
-                            "$push": { f"selections.{selection_index}.game_logs": game_log_league_specific },
-                            "$set": { f"selections.{selection_index}.total_stats": stats_dict }
+                            "$push": { f"selections.{selection_index}.gameLogs": game_log_league_specific },
+                            "$set": { f"selections.{selection_index}.totalStats": stats_dict }
                         }
                     )
                 else:
                     print("new game log for player")
-                    for existing_game_logs in lineup["selections"][selection_index]["game_logs"]:
+                    for existing_game_logs in lineup["selections"][selection_index]["gameLogs"]:
                         for key, value in existing_game_logs.items():
-                            if key != "game_date":
+                            if key != "gameDate":
                                 stats_dict[key] += value
 
                     for key, value in game_log_league_specific.items():
-                        if key != "game_date":
+                        if key != "gameDate":
                             stats_dict[key] += value
 
                     lineups.update_one(
                         {"_id": ObjectId(lineup["_id"])},
                         {
-                            "$push": { f"selections.{selection_index}.game_logs": game_log_league_specific },
-                            "$set": { 
+                            "$push": { f"selections.{selection_index}.gameLogs": game_log_league_specific },
+                            "$set": {
                                     f"selections.{selection_index}.locked": True,
-                                    f"selections.{selection_index}.total_stats": stats_dict
+                                    f"selections.{selection_index}.totalStats": stats_dict
                                 }
                         }
-                    )                   
+                    )
     
             # create/update keys in outcome field
             if style == 'Rotisserie':
                 outcome_dict = {}
                 for key,value in game_log_league_specific.items():
-                    if key != "game_date":
+                    if key != "gameDate":
                         outcome_dict[f"outcome.{key}"] = {
-                            "$sum": f"$selections.total_stats.{key}"
+                            "$sum": f"$selections.totalStats.{key}"
                         }
 
                 result = list(lineups.aggregate([

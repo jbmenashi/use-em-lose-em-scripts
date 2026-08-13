@@ -7,9 +7,9 @@ import os
 load_dotenv(find_dotenv())
 
 client = MongoClient(os.environ["MONGODB_URI"])
-db = client.ff_db
-teams = db["Teams"]
-playerDetails = db["PlayerDetails"]
+db = client.uele2
+teams = db["teams"]
+playerDetails = db["playerdetails"]
 
 def get_teams():
     team_docs = []
@@ -29,20 +29,20 @@ def get_teams():
     for team in res.json()["body"]:
         team_def_doc = {}
         team_def_doc["sport"] = "NFL"
-        team_def_doc["player_id"] = int(team["teamID"])
-        team_def_doc["team_id"] = int(team["teamID"])
-        team_def_doc["player_name"] = team["teamAbv"] + " Defense"
+        team_def_doc["playerId"] = int(team["teamID"])
+        team_def_doc["teamId"] = int(team["teamID"])
+        team_def_doc["playerName"] = team["teamAbv"] + " Defense"
         team_def_doc["status"] = "Active"
-        team_def_doc["team_id"] = int(team["teamID"])
-        team_def_doc["team_abbreviation"] = team["teamAbv"]
-        team_def_doc["jersey_num"] = ""
+        team_def_doc["teamId"] = int(team["teamID"])
+        team_def_doc["teamAbbreviation"] = team["teamAbv"]
+        team_def_doc["jerseyNum"] = ""
         team_def_doc["position"] = "DEF"
         team_def_doc["logo"] = team["nflComLogo1"]
         team_defense_docs.append(team_def_doc)
 
         team_doc = {}
         team_doc["sport"] = "NFL"
-        team_doc["team_id"] = int(team["teamID"])
+        team_doc["teamId"] = int(team["teamID"])
         team_doc["city"] = team["teamCity"]
         team_doc["nickname"] = team["teamName"]
         team_doc["abbreviation"] = team["teamAbv"]
