@@ -9,99 +9,99 @@ client = MongoClient(os.environ["MONGODB_URI"])
 
 current_season = 2024
 
-db = client.ff_db
-player_season_stats = db["PlayerSeasonStats"]
+db = client.uele2
+player_season_stats = db["playerseasonstats"]
 
 new_season_stats = []
 
 def season_stats():
-    result = list(db['NFLGameLogs'].aggregate([
+    result = list(db['nflgamelogs'].aggregate([
         {
             '$match': {
                 'season': current_season
             }
         }, {
             '$group': {
-                '_id': '$player_id', 
-                'total_games': {'$sum': 1},
-                'total_pass_yds': { '$sum': '$pass_yds' },
-                'total_pass_tds': { '$sum': '$pass_tds' },
-                'total_ints': { '$sum': '$ints' },
-                'total_rush_yds': { '$sum': '$rush_yds' },
-                'total_receptions': { '$sum': '$receptions' },
-                'total_rec_yds': { '$sum': '$rec_yds' },
-                'total_fumbles': { '$sum': '$fumbles' },
-                'total_tds': { '$sum': '$tds' },
-                'total_two_pt_conv': { '$sum': '$two_pt_conv' },
-                'total_def_pts_allowed': { '$sum': '$def_pts_allowed' },
-                'total_def_sacks': { '$sum': '$def_sacks' },
-                'total_def_fumble_rec': { '$sum': '$def_fumble_rec' },
-                'total_def_ints': { '$sum': '$def_ints' },
-                'total_def_blk_kicks': { '$sum': '$def_blk_kicks' },
-                'total_def_safeties': { '$sum': '$def_safeties' },
-                'total_def_tds_scored': { '$sum': '$def_tds_scored' },
-                'total_yahoo_pts': { '$sum': '$yahoo_pts' }
+                '_id': '$playerId', 
+                'totalGames': {'$sum': 1},
+                'totalPassYds': { '$sum': '$passYds' },
+                'totalPassTds': { '$sum': '$passTds' },
+                'totalInts': { '$sum': '$ints' },
+                'totalRushYds': { '$sum': '$rushYds' },
+                'totalReceptions': { '$sum': '$receptions' },
+                'totalRecYds': { '$sum': '$recYds' },
+                'totalFumbles': { '$sum': '$fumbles' },
+                'totalTds': { '$sum': '$tds' },
+                'totalTwoPtConv': { '$sum': '$twoPtConv' },
+                'totalDefPtsAllowed': { '$sum': '$defPtsAllowed' },
+                'totalDefSacks': { '$sum': '$defSacks' },
+                'totalDefFumbleRec': { '$sum': '$defFumbleRec' },
+                'totalDefInts': { '$sum': '$defInts' },
+                'totalDefBlkKicks': { '$sum': '$defBlkKicks' },
+                'totalDefSafeties': { '$sum': '$defSafeties' },
+                'totalDefTdsScored': { '$sum': '$defTdsScored' },
+                'totalYahooPts': { '$sum': '$yahooPts' }
             }
         }
     ]))
 
     for player in result:
         if season_stat_exists := player_season_stats.find_one({
-            "player_id": player["_id"],
+            "playerId": player["_id"],
             "season": current_season
             }) is not None:
                 found_season_stat = player_season_stats.find_one({
-                "player_id": player["_id"],
+                "playerId": player["_id"],
                 "season": current_season
                 })
                 player_season_stats.update_one(
                     {"_id": ObjectId(found_season_stat["_id"])},
                     {"$set": {
-                        "stats.games": player["total_games"],
-                        "stats.pass_yds": player["total_pass_yds"],
-                        "stats.pass_tds": player["total_pass_tds"],
-                        "stats.ints": player["total_ints"],
-                        "stats.rush_yds": player["total_rush_yds"],
-                        "stats.receptions": player["total_receptions"],
-                        "stats.rec_yds": player["total_rec_yds"],
-                        "stats.fumbles": player["total_fumbles"],
-                        "stats.tds": player["total_tds"],
-                        "stats.two_pt_conv": player["total_two_pt_conv"],
-                        "stats.def_pts_allowed": player["total_def_pts_allowed"],
-                        "stats.def_sacks": player["total_def_sacks"],
-                        "stats.def_fumble_rec": player["total_def_fumble_rec"],
-                        "stats.def_ints": player["total_def_ints"],
-                        "stats.def_blk_kicks": player["total_def_blk_kicks"],
-                        "stats.def_safeties": player["total_def_safeties"],
-                        "stats.def_tds_scored": player["total_def_tds_scored"],
-                        "stats.yahoo_pts": player["total_yahoo_pts"]
+                        "stats.games": player["totalGames"],
+                        "stats.passYds": player["totalPassYds"],
+                        "stats.passTds": player["totalPassTds"],
+                        "stats.ints": player["totalInts"],
+                        "stats.rushYds": player["totalRushYds"],
+                        "stats.receptions": player["totalReceptions"],
+                        "stats.recYds": player["totalRecYds"],
+                        "stats.fumbles": player["totalFumbles"],
+                        "stats.tds": player["totalTds"],
+                        "stats.twoPtConv": player["totalTwoPtConv"],
+                        "stats.defPtsAllowed": player["totalDefPtsAllowed"],
+                        "stats.defSacks": player["totalDefSacks"],
+                        "stats.defFumbleRec": player["totalDefFumbleRec"],
+                        "stats.defInts": player["totalDefInts"],
+                        "stats.defBlkKicks": player["totalDefBlkKicks"],
+                        "stats.defSafeties": player["totalDefSafeties"],
+                        "stats.defTdsScored": player["totalDefTdsScored"],
+                        "stats.yahooPts": player["totalYahooPts"]
                         }}
                     )       
                 print(f"updated season stats for player {player['_id']}")           
         else:
             season_stats = {}
-            season_stats["player_id"] = player['_id']
+            season_stats["playerId"] = player['_id']
             season_stats["sport"] = "NFL"
             season_stats["season"] = current_season
             season_stats["stats"] = {}
-            season_stats["stats"]["games"] = player["total_games"]
-            season_stats["stats"]["pass_yds"] = player["total_pass_yds"]
-            season_stats["stats"]["pass_tds"] = player["total_pass_tds"]
-            season_stats["stats"]["ints"] = player["total_ints"]
-            season_stats["stats"]["rush_yds"] = player["total_rush_yds"]
-            season_stats["stats"]["receptions"] = player["total_receptions"]
-            season_stats["stats"]["rec_yds"] = player["total_rec_yds"]
-            season_stats["stats"]["fumbles"] = player["total_fumbles"]
-            season_stats["stats"]["tds"] = player["total_tds"]
-            season_stats["stats"]["two_pt_conv"] = player["total_two_pt_conv"]
-            season_stats["stats"]["def_pts_allowed"] = player["total_def_pts_allowed"]
-            season_stats["stats"]["def_sacks"] = player["total_def_sacks"]
-            season_stats["stats"]["def_fumble_rec"] = player["total_def_fumble_rec"]        
-            season_stats["stats"]["def_ints"] = player["total_def_ints"]        
-            season_stats["stats"]["def_blk_kicks"] = player["total_def_blk_kicks"]        
-            season_stats["stats"]["def_safeties"] = player["total_def_safeties"]        
-            season_stats["stats"]["def_tds_scored"] = player["total_def_tds_scored"]              
-            season_stats["stats"]["yahoo_pts"] = player["total_yahoo_pts"]              
+            season_stats["stats"]["games"] = player["totalGames"]
+            season_stats["stats"]["passYds"] = player["totalPassYds"]
+            season_stats["stats"]["passTds"] = player["totalPassTds"]
+            season_stats["stats"]["ints"] = player["totalInts"]
+            season_stats["stats"]["rushYds"] = player["totalRushYds"]
+            season_stats["stats"]["receptions"] = player["totalReceptions"]
+            season_stats["stats"]["recYds"] = player["totalRecYds"]
+            season_stats["stats"]["fumbles"] = player["totalFumbles"]
+            season_stats["stats"]["tds"] = player["totalTds"]
+            season_stats["stats"]["twoPtConv"] = player["totalTwoPtConv"]
+            season_stats["stats"]["defPtsAllowed"] = player["totalDefPtsAllowed"]
+            season_stats["stats"]["defSacks"] = player["totalDefSacks"]
+            season_stats["stats"]["defFumbleRec"] = player["totalDefFumbleRec"]        
+            season_stats["stats"]["defInts"] = player["totalDefInts"]        
+            season_stats["stats"]["defBlkKicks"] = player["totalDefBlkKicks"]        
+            season_stats["stats"]["defSafeties"] = player["totalDefSafeties"]        
+            season_stats["stats"]["defTdsScored"] = player["totalDefTdsScored"]              
+            season_stats["stats"]["yahooPts"] = player["totalYahooPts"]              
             new_season_stats.append(season_stats)
             print(f"Inserting new season stats for player {player['_id']}")
         

@@ -8,8 +8,8 @@ from datetime import datetime
 load_dotenv(find_dotenv())
 
 client = MongoClient(os.environ["MONGODB_URI"])
-db = client.ff_db
-player_projections = db["PlayerProjections"]
+db = client.uele2
+player_projections = db["playerprojections"]
 
 projection_season = 2024
 projection_week = 18
@@ -31,14 +31,14 @@ def get_player_projections():
         games[f"{game['teamIDHome']}"] = {}
         games[f"{game['teamIDHome']}"]["location"] = "Home"
         games[f"{game['teamIDHome']}"]["opponent"] = game["away"]
-        games[f"{game['teamIDHome']}"]["opponent_id"] = game['teamIDAway']
-        games[f"{game['teamIDHome']}"]["game_time"] = datetime.strptime(game["gameDate"], "%Y%m%d").strftime("%a") + " " + game["gameTime"]
+        games[f"{game['teamIDHome']}"]["opponentId"] = game['teamIDAway']
+        games[f"{game['teamIDHome']}"]["gameTime"] = datetime.strptime(game["gameDate"], "%Y%m%d").strftime("%a") + " " + game["gameTime"]
         print("away", game['teamIDAway'])
         games[f"{game['teamIDAway']}"] = {}
         games[f"{game['teamIDAway']}"]["location"] = "Away"
         games[f"{game['teamIDAway']}"]["opponent"] = game["home"]
-        games[f"{game['teamIDAway']}"]["opponent_id"] = game['teamIDHome']
-        games[f"{game['teamIDAway']}"]["game_time"] = datetime.strptime(game["gameDate"], "%Y%m%d").strftime("%a") + " " + game["gameTime"]
+        games[f"{game['teamIDAway']}"]["opponentId"] = game['teamIDHome']
+        games[f"{game['teamIDAway']}"]["gameTime"] = datetime.strptime(game["gameDate"], "%Y%m%d").strftime("%a") + " " + game["gameTime"]
 
     projection_inserts = []
 
@@ -59,33 +59,33 @@ def get_player_projections():
         # score = (player["PassingYards"] * 0.04) + (player["PassingTouchdowns"] * 4) + (player["PassingInterceptions"] * -1) + (player["RushingYards"] * 0.1) + (player["Receptions"] * 0.5) + (player["ReceivingYards"] * 0.1) + (player["Fumbles"] * -2) + (player["Touchdowns"] * 6)
 
         if projection_exists := player_projections.find_one({
-                "player_id": int(player["playerID"]),
+                "playerId": int(player["playerID"]),
                 "season": projection_season,
                 "week": projection_week
             }) is not None:
             found_projection = player_projections.find_one({
-                "player_id": int(player["playerID"]),
+                "playerId": int(player["playerID"]),
                 "season": projection_season,
                 "week": projection_week
             })
             update = 0
-            if found_projection["stats"]["pass_yds"] != round(float(player["Passing"]["passYds"]), 2):
+            if found_projection["stats"]["passYds"] != round(float(player["Passing"]["passYds"]), 2):
                 update = 1
-            if found_projection["stats"]["pass_tds"] != round(float(player["Passing"]["passTD"]), 2):
+            if found_projection["stats"]["passTds"] != round(float(player["Passing"]["passTD"]), 2):
                 update = 1
             if found_projection["stats"]["ints"] != round(float(player["Passing"]["int"]), 2):
                 update = 1    
-            if found_projection["stats"]["rush_yds"] != round(float(player["Rushing"]["rushYds"]), 2):
+            if found_projection["stats"]["rushYds"] != round(float(player["Rushing"]["rushYds"]), 2):
                 update = 1     
             if found_projection["stats"]["receptions"] != round(float(player["Receiving"]["receptions"]), 2):
                 update = 1    
-            if found_projection["stats"]["rec_yds"] != round(float(player["Receiving"]["recYds"]), 2):
+            if found_projection["stats"]["recYds"] != round(float(player["Receiving"]["recYds"]), 2):
                 update = 1    
             if found_projection["stats"]["fumbles"] != round(float(player["fumblesLost"]), 2):
                 update = 1    
             if found_projection["stats"]["tds"] != round(float(player["Rushing"]["rushTD"]), 2) + round(float(player["Receiving"]["recTD"]), 2):
                 update = 1    
-            if found_projection["stats"]["two_pt_conv"] != round(float(player["twoPointConversion"]), 2):
+            if found_projection["stats"]["twoPtConv"] != round(float(player["twoPointConversion"]), 2):
                 update = 1    
             if found_projection["stats"]["score"] != round(float(player["fantasyPoints"]), 2):
                 update = 1    
@@ -94,15 +94,15 @@ def get_player_projections():
                 player_projections.update_one(
                     {"_id": ObjectId(found_projection["_id"])},
                     {"$set": {
-                        "stats.pass_yds": round(float(player["Passing"]["passYds"]), 2),
-                        "stats.pass_tds": round(float(player["Passing"]["passTD"]), 2),
+                        "stats.passYds": round(float(player["Passing"]["passYds"]), 2),
+                        "stats.passTds": round(float(player["Passing"]["passTD"]), 2),
                         "stats.ints": round(float(player["Passing"]["int"]), 2),
-                        "stats.rush_yds": round(float(player["Rushing"]["rushYds"]), 2),
+                        "stats.rushYds": round(float(player["Rushing"]["rushYds"]), 2),
                         "stats.receptions": round(float(player["Receiving"]["receptions"]), 2),
-                        "stats.rec_yds": round(float(player["Receiving"]["recYds"]), 2),
+                        "stats.recYds": round(float(player["Receiving"]["recYds"]), 2),
                         "stats.fumbles": round(float(player["fumblesLost"]), 2),
                         "stats.tds": round(float(player["Rushing"]["rushTD"]), 2) + round(float(player["Receiving"]["recTD"]), 2),
-                        "stats.two_pt_conv": round(float(player["twoPointConversion"]), 2),
+                        "stats.twoPtConv": round(float(player["twoPointConversion"]), 2),
                         "stats.score": round(float(player["fantasyPoints"]), 2)
                     }}
                 )       
@@ -113,34 +113,34 @@ def get_player_projections():
         else:
             if player["pos"] in ["QB", "RB", "WR", "TE", "FB"] and player["teamID"] in games.keys():
                 projection = {}
-                projection["player_id"] = int(player["playerID"])
-                projection["player_name"] = player["longName"]
-                projection["team_id"] = int(player["teamID"])
-                projection["team_abbv"] = player["team"]
+                projection["playerId"] = int(player["playerID"])
+                projection["playerName"] = player["longName"]
+                projection["teamId"] = int(player["teamID"])
+                projection["teamAbbv"] = player["team"]
                 projection["sport"] = "NFL"
                 projection["season"] = projection_season
                 projection["week"] = projection_week
                 projection["opponent"] = games[f"{player['teamID']}"]["opponent"]
-                projection["opponent_team_id"] = int(games[f"{player['teamID']}"]["opponent_id"])
+                projection["opponentTeamId"] = int(games[f"{player['teamID']}"]["opponentId"])
                 projection["location"] = games[f"{player['teamID']}"]["location"]
-                projection["game_time"] = games[f"{player['teamID']}"]["game_time"]
+                projection["gameTime"] = games[f"{player['teamID']}"]["gameTime"]
                 projection["stats"] = {}
-                projection["stats"]["pass_yds"] = round(float(player["Passing"]["passYds"]), 2)
-                projection["stats"]["pass_tds"] = round(float(player["Passing"]["passTD"]), 2)
+                projection["stats"]["passYds"] = round(float(player["Passing"]["passYds"]), 2)
+                projection["stats"]["passTds"] = round(float(player["Passing"]["passTD"]), 2)
                 projection["stats"]["ints"] = round(float(player["Passing"]["int"]), 2)
-                projection["stats"]["rush_yds"] = round(float(player["Rushing"]["rushYds"]), 2)
+                projection["stats"]["rushYds"] = round(float(player["Rushing"]["rushYds"]), 2)
                 projection["stats"]["receptions"] = round(float(player["Receiving"]["receptions"]), 2)
-                projection["stats"]["rec_yds"] = round(float(player["Receiving"]["recYds"]), 2)
+                projection["stats"]["recYds"] = round(float(player["Receiving"]["recYds"]), 2)
                 projection["stats"]["fumbles"] = round(float(player["fumblesLost"]), 2)
                 projection["stats"]["tds"] = round(float(player["Rushing"]["rushTD"]), 2) + round(float(player["Receiving"]["recTD"]), 2)
-                projection["stats"]["two_pt_conv"] = round(float(player["twoPointConversion"]), 2)
-                projection["stats"]["def_pts_allowed"] = 0
-                projection["stats"]["def_sacks"] = 0
-                projection["stats"]["def_fumble_rec"] = 0
-                projection["stats"]["def_ints"] = 0
-                projection["stats"]["def_blk_kicks"] = 0
-                projection["stats"]["def_safeties"] = 0
-                projection["stats"]["def_tds_scored"] = 0
+                projection["stats"]["twoPtConv"] = round(float(player["twoPointConversion"]), 2)
+                projection["stats"]["defPtsAllowed"] = 0
+                projection["stats"]["defSacks"] = 0
+                projection["stats"]["defFumbleRec"] = 0
+                projection["stats"]["defInts"] = 0
+                projection["stats"]["defBlkKicks"] = 0
+                projection["stats"]["defSafeties"] = 0
+                projection["stats"]["defTdsScored"] = 0
                 projection["stats"]["score"] = round(float(player["fantasyPoints"]), 2)
                 projection_inserts.append(projection)
                 
@@ -167,29 +167,29 @@ def get_player_projections():
         #     score += -4
 
         if projection_exists := player_projections.find_one({
-                "player_id": int(dst["teamID"]),
+                "playerId": int(dst["teamID"]),
                 "season": projection_season,
                 "week": projection_week
             }) is not None:
             found_projection = player_projections.find_one({
-                "player_id": int(dst["teamID"]),
+                "playerId": int(dst["teamID"]),
                 "season": projection_season,
                 "week": projection_week
             })
             update = 0
-            if found_projection["stats"]["def_pts_allowed"] != round(float(dst["ptsAgainst"]), 2):
+            if found_projection["stats"]["defPtsAllowed"] != round(float(dst["ptsAgainst"]), 2):
                 update = 1
-            if found_projection["stats"]["def_sacks"] != round(float(dst["sacks"]), 2):
+            if found_projection["stats"]["defSacks"] != round(float(dst["sacks"]), 2):
                 update = 1
-            if found_projection["stats"]["def_fumble_rec"] != round(float(dst["fumbleRecoveries"]), 2):
+            if found_projection["stats"]["defFumbleRec"] != round(float(dst["fumbleRecoveries"]), 2):
                 update = 1    
-            if found_projection["stats"]["def_ints"] != round(float(dst["interceptions"]), 2):
+            if found_projection["stats"]["defInts"] != round(float(dst["interceptions"]), 2):
                 update = 1     
-            if found_projection["stats"]["def_blk_kicks"] != round(float(dst["blockKick"]), 2):
+            if found_projection["stats"]["defBlkKicks"] != round(float(dst["blockKick"]), 2):
                 update = 1    
-            if found_projection["stats"]["def_safeties"] != round(float(dst["safeties"]), 2):
+            if found_projection["stats"]["defSafeties"] != round(float(dst["safeties"]), 2):
                 update = 1    
-            if found_projection["stats"]["def_tds_scored"] != round(float(dst["defTD"]), 2):
+            if found_projection["stats"]["defTdsScored"] != round(float(dst["defTD"]), 2):
                 update = 1      
             if found_projection["stats"]["score"] != round(float(dst["fantasyPointsDefault"]), 2):
                 update = 1      
@@ -198,13 +198,13 @@ def get_player_projections():
                 player_projections.update_one(
                     {"_id": ObjectId(found_projection["_id"])},
                     {"$set": {
-                        "stats.def_pts_allowed": round(float(dst["ptsAgainst"]), 2),
-                        "stats.def_sacks": round(float(dst["sacks"]), 2),
-                        "stats.def_fumble_rec": round(float(dst["fumbleRecoveries"]), 2),
-                        "stats.def_ints": round(float(dst["interceptions"]), 2),
-                        "stats.def_blk_kicks": round(float(dst["blockKick"]), 2),
-                        "stats.def_safeties": round(float(dst["safeties"]), 2),
-                        "stats.def_tds_scored": round(float(dst["defTD"]), 2),
+                        "stats.defPtsAllowed": round(float(dst["ptsAgainst"]), 2),
+                        "stats.defSacks": round(float(dst["sacks"]), 2),
+                        "stats.defFumbleRec": round(float(dst["fumbleRecoveries"]), 2),
+                        "stats.defInts": round(float(dst["interceptions"]), 2),
+                        "stats.defBlkKicks": round(float(dst["blockKick"]), 2),
+                        "stats.defSafeties": round(float(dst["safeties"]), 2),
+                        "stats.defTdsScored": round(float(dst["defTD"]), 2),
                         "stats.score": round(float(dst["fantasyPointsDefault"]), 2)
                     }}
                 )       
@@ -214,40 +214,40 @@ def get_player_projections():
                     
         else:
             projection = {}
-            projection["player_id"] = int(dst["teamID"])
-            projection["player_name"] = dst["teamAbv"] + " Defense"
-            projection["team_id"] = int(dst["teamID"])
-            projection["team_abbv"] = dst["teamAbv"]
+            projection["playerId"] = int(dst["teamID"])
+            projection["playerName"] = dst["teamAbv"] + " Defense"
+            projection["teamId"] = int(dst["teamID"])
+            projection["teamAbbv"] = dst["teamAbv"]
             projection["sport"] = "NFL"
             projection["season"] = projection_season
             projection["week"] = projection_week
             if f"{dst['teamID']}" in games.keys():
                 projection["opponent"] = games[f"{dst['teamID']}"]["opponent"]
-                projection["opponent_team_id"] = int(games[f"{dst['teamID']}"]["opponent_id"])
+                projection["opponentTeamId"] = int(games[f"{dst['teamID']}"]["opponentId"])
                 projection["location"] = games[f"{dst['teamID']}"]["location"]
-                projection["game_time"] = games[f"{dst['teamID']}"]["game_time"]
+                projection["gameTime"] = games[f"{dst['teamID']}"]["gameTime"]
             else:
                 projection["opponent"] = ""
-                projection["opponent_team_id"] = 0
+                projection["opponentTeamId"] = 0
                 projection["location"] = ""
-                projection["game_time"] = ""          
+                projection["gameTime"] = ""          
             projection["stats"] = {}
-            projection["stats"]["pass_yds"] = 0
-            projection["stats"]["pass_tds"] = 0
+            projection["stats"]["passYds"] = 0
+            projection["stats"]["passTds"] = 0
             projection["stats"]["ints"] = 0
-            projection["stats"]["rush_yds"] = 0
+            projection["stats"]["rushYds"] = 0
             projection["stats"]["receptions"] = 0
-            projection["stats"]["rec_yds"] = 0
+            projection["stats"]["recYds"] = 0
             projection["stats"]["fumbles"] = 0
             projection["stats"]["tds"] = 0
-            projection["stats"]["two_pt_conv"] = 0
-            projection["stats"]["def_pts_allowed"] = round(float(dst["ptsAgainst"]), 2)
-            projection["stats"]["def_sacks"] = round(float(dst["sacks"]), 2)
-            projection["stats"]["def_fumble_rec"] = round(float(dst["fumbleRecoveries"]), 2)
-            projection["stats"]["def_ints"] = round(float(dst["interceptions"]), 2)
-            projection["stats"]["def_blk_kicks"] = round(float(dst["blockKick"]), 2)
-            projection["stats"]["def_safeties"] = round(float(dst["safeties"]), 2)
-            projection["stats"]["def_tds_scored"] = round(float(dst["defTD"]), 2)
+            projection["stats"]["twoPtConv"] = 0
+            projection["stats"]["defPtsAllowed"] = round(float(dst["ptsAgainst"]), 2)
+            projection["stats"]["defSacks"] = round(float(dst["sacks"]), 2)
+            projection["stats"]["defFumbleRec"] = round(float(dst["fumbleRecoveries"]), 2)
+            projection["stats"]["defInts"] = round(float(dst["interceptions"]), 2)
+            projection["stats"]["defBlkKicks"] = round(float(dst["blockKick"]), 2)
+            projection["stats"]["defSafeties"] = round(float(dst["safeties"]), 2)
+            projection["stats"]["defTdsScored"] = round(float(dst["defTD"]), 2)
             projection["stats"]["score"] = round(float(dst["fantasyPointsDefault"]), 2)
             projection_inserts.append(projection)
             
